@@ -14,5 +14,9 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     setupFiles: ["tests/setup-env.ts"],
+    // DB-integration suites make several serverless round-trips to Neon per
+    // hook/test; the default 5s/10s is too tight over the network.
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
 });

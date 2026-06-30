@@ -5,9 +5,9 @@ Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club, with
 progress-gated, first-class feature**. Extracted from the CentenarianOS media tracker and rebuilt on
 the WitUS ecosystem stack (mirrors `witus-learn`).
 
-> Build status: **Phases 0–5 landed** (scaffold · foundation · isolation gate · tracker UI ·
-> auto-metadata · public podcast surface). The ReadWitUS club and ecosystem wiring follow — see the
-> roadmap.
+> Build status: **Phases 0–6 landed** (scaffold · foundation · isolation gate · tracker UI ·
+> auto-metadata · public podcast surface · ReadWitUS book club). Ecosystem wiring (outbox/inbox) and
+> public-ready hardening follow — see the roadmap.
 
 ## Stack
 
@@ -20,9 +20,13 @@ Open Library. `@/*` → `src/*`.
 - **Owner-scoped data access** — every owner content query goes through the `src/db/scoped.ts`
   `ScopedDb` chokepoint, scoped by `user_id`. No route handler runs an unscoped read; by-id reads
   return null (caller 404s) across owners — never a redirect.
-- **Public read path** — logged-out reads (public show notes at `/episodes`) go through the separate
-  `src/db/public.ts` chokepoint, which filters `visibility = 'public'` and never returns a private
-  row. This is the additive multi-user dimension the owner-scoped design anticipated.
+- **Public read path** — logged-out reads (public show notes at `/episodes`, public clubs at
+  `/clubs/[slug]`) go through the separate `src/db/public.ts` chokepoint, which filters
+  `visibility = 'public'` and never returns a private row. The additive multi-user dimension the
+  owner-scoped design anticipated.
+- **Membership-scoped clubs** — `src/db/clubs.ts` scopes ReadWitUS club content by membership, and
+  enforces the spoiler-safe gate: a discussion post tied to milestone N is returned with its **body
+  withheld** to members below N (the spoiler never crosses the wire), not merely CSS-blurred.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
   fails the build if any API route imports the raw DB client; `scoped.db.test.ts` proves owner B
   cannot read/patch/delete owner A's data (runs once a Neon DB is configured).
@@ -73,8 +77,12 @@ Auth, with the CentOS request/response contract preserved so the UI ports unchan
 `media/summary` · `podcasts` (list/create) · `podcasts/[id]` (get/patch/delete) ·
 `podcasts/[id]/media` (link / update-timestamp / unlink).
 
-Public, logged-out surfaces (read path `src/db/public.ts`): `/episodes` and `/episodes/[id]` —
-server-rendered show-note pages for episodes the owner has marked `visibility=public`.
+ReadWitUS clubs (`/dashboard/clubs`): `clubs` (list/create) · `clubs/[id]` (get/patch) ·
+`clubs/[id]/members` · `clubs/[id]/reads` · `clubs/[id]/reads/[readId]/{schedule,progress,discussion}`.
+
+Public, logged-out surfaces (read path `src/db/public.ts`): `/episodes` + `/episodes/[id]` (public
+show notes) and `/clubs/[slug]` (public club identity + reading list) for content marked
+`visibility=public`.
 
 ## Project docs
 

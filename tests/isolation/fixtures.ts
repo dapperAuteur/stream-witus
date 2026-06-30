@@ -40,9 +40,11 @@ export interface SeededOwners {
 export async function seedTwoOwners(db: TestDb): Promise<SeededOwners> {
   const ownerA = `test-A-${randomUUID()}`;
   const ownerB = `test-B-${randomUUID()}`;
+  // better-auth normalises emails to lowercase on signup; mirror that so
+  // case-insensitive lookups (e.g. club invite by email) behave like production.
   await db.insert(schema.users).values([
-    { id: ownerA, email: `${ownerA}@example.test`, emailVerified: true },
-    { id: ownerB, email: `${ownerB}@example.test`, emailVerified: true },
+    { id: ownerA, email: `${ownerA}@example.test`.toLowerCase(), emailVerified: true },
+    { id: ownerB, email: `${ownerB}@example.test`.toLowerCase(), emailVerified: true },
   ]);
   return { ownerA, ownerB };
 }
