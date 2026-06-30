@@ -34,6 +34,23 @@ export async function POST(request: NextRequest, { params }: Params) {
   return NextResponse.json({ link }, { status: 201 });
 }
 
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const sdb = await getScopedDb();
+  if (!sdb) return unauthorized();
+  const { id } = await params;
+  const body = await request.json();
+  if (!body?.media_item_id) return badRequest("media_item_id is required");
+
+  const updates: { timestampStart?: string | null; discussionNotes?: string | null } = {};
+  if (body.timestamp_start !== undefined) updates.timestampStart = body.timestamp_start || null;
+  if (body.discussion_notes !== undefined) updates.discussionNotes = body.discussion_notes || null;
+  if (Object.keys(updates).length === 0) return badRequest("No valid fields to update");
+
+  const link = await sdb.updateEpisodeLink(id, body.media_item_id, updates);
+  if (!link) return notFound();
+  return NextResponse.json({ link });
+}
+
 export async function DELETE(request: NextRequest, { params }: Params) {
   const sdb = await getScopedDb();
   if (!sdb) return unauthorized();
