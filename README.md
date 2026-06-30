@@ -1,42 +1,66 @@
-# Stream.WitUS — build brief
+# Stream.WitUS
 
-**This folder is a handoff package, not yet an app.** It holds the docs + plans needed to build
-**Stream.WitUS** (stream.witus.online): a personal-first cross-media tracker and companion for the
-**All The Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club. It was produced
-in a planning session by extracting and re-scoping the media-tracker module from **CentenarianOS**
-(`gemini/centenarian-os/app/dashboard/media`), following the same path the Academy module took to
-become **LearnWitUS** (`claude/witus-learn`).
+**stream.witus.online** — a personal-first cross-media tracker and companion for the **All The
+Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club, with **spoilers as a
+progress-gated, first-class feature**. Extracted from the CentenarianOS media tracker and rebuilt on
+the WitUS ecosystem stack (mirrors `witus-learn`).
 
-There is **no application code here** — the build happens in a separate session that opens this folder.
+> Build status: **Phases 0–2 landed** (scaffold · foundation · isolation gate). The tracker UI,
+> auto-metadata, podcast surface, and ReadWitUS club follow — see the roadmap.
 
-## Reading order (for the build chat)
+## Stack
 
-1. **`CLAUDE.md`** — ecosystem rules + this product's "one job" and the owner-scoped→public-ready
-   invariant. Read first.
-2. **`docs/06-open-decisions.md`** — the **5 open product decisions**. Answer these before scaffolding;
-   they change the schema and scope.
-3. **`docs/00-vision-and-one-job.md`** — product thesis and positioning.
-4. **`docs/01-competitive-brief.md`** — what the leaders do well and the gaps we exploit (APA 7).
-5. **`docs/02-build-plan.md`** — the phased build (scaffold → foundation → isolation gate → features →
-   ecosystem wiring → public-ready).
-6. **`docs/03-data-model.md`** — the target Drizzle schema (8 CentOS tables translated + a new
-   ReadWitUS `club.ts` group).
-7. **`docs/04-extraction-map.md`** — what to port ~as-is vs rewrite, file-by-file from CentOS.
-8. **`docs/05-ecosystem-integration.md`** — inbox + outbox wiring with exact contracts.
-9. **`docs/reports/A,B,C`** — the raw research reports behind the synthesized docs (verbatim).
-10. **`plans/`** — the origin plan + the operator-task queue (`plans/user-tasks/`).
+Next.js 16 (App Router, `--webpack`) · TypeScript · Tailwind v4 · Neon Postgres + Drizzle ORM +
+drizzle-kit · Better Auth (magic-link via Mailgun) · Zod · Vitest · pnpm · Cloudinary · TMDB +
+Open Library. `@/*` → `src/*`.
 
-## To start the build
+## Architecture
 
-1. `git init` this folder (or move it into a fresh repo), then activate the branch-hygiene hook:
-   `git config core.hooksPath .githooks`.
-2. Work the operator tasks in `plans/user-tasks/` (Neon, DNS, TMDB key, outbox/inbox slugs) — they
-   unblock the phases.
-3. Follow `docs/02-build-plan.md`. Phase 2 (the isolation test suite) is the first hard gate.
+- **Owner-scoped data access** — every content query goes through the `src/db/scoped.ts` `ScopedDb`
+  chokepoint, scoped by `user_id`. No route handler runs an unscoped read; by-id reads return null
+  (caller 404s) across owners — never a redirect. Built so a later `visibility=public` / multi-user
+  read path is an *additive* method, not a rewrite.
+- **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
+  fails the build if any API route imports the raw DB client; `scoped.db.test.ts` proves owner B
+  cannot read/patch/delete owner A's data (runs once a Neon DB is configured).
 
-## Ecosystem stack (target)
+## Setup
 
-Next.js 16 · TypeScript · Tailwind v4 · Neon Postgres + Drizzle ORM · Better Auth (magic-link) · Zod ·
-Vitest · pnpm · Cloudinary · TMDB + Open Library · witus-outbox / witus-inbox sender libs. Mirrors
-`witus-learn` / `shop-witus`.
-# stream-witus
+```bash
+pnpm install
+cp .env.example .env.local      # fill in the DB URL + auth secret (see operator tasks)
+pnpm db:migrate                 # apply src/db/migrations to Neon
+pnpm seed                       # default categories + a sample item + a sample episode (dev)
+pnpm dev                        # http://localhost:3050
+```
+
+Database env vars are **`STORAGE_`-prefixed** in this project (Vercel–Neon integration):
+`STORAGE_DATABASE_URL`, `STORAGE_DATABASE_URL_UNPOOLED`. The plain / `POSTGRES_` forms are also
+accepted.
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `pnpm dev` | Dev server (port 3050) |
+| `pnpm build` | Production build (`--webpack`) |
+| `pnpm typecheck` | `next typegen && tsc --noEmit` |
+| `pnpm lint` | ESLint |
+| `pnpm test` | Vitest (isolation suite) |
+| `pnpm db:generate` | Generate a Drizzle migration from the schema |
+| `pnpm db:migrate` | Apply migrations to Neon (reads `.env.local`) |
+| `pnpm seed` | Seed dev data |
+
+## API surface (Phase 1)
+
+Ported from CentenarianOS, rewritten Supabase → Drizzle through `ScopedDb`, auth swapped to Better
+Auth. The `/api/media/*` request/response contract is preserved so the Phase 3 UI ports unchanged:
+`media` (list/create) · `media/[id]` · `media/[id]/notes[/{noteId}]` · `media/[id]/relationships` ·
+`media/categories[/{id}]` · `media/creators[/{id}]` · `media/platforms[/{id}]` · `media/export` ·
+`media/import` · `media/import-url` · `media/summary` · `podcasts/[id]/media`.
+
+## Project docs
+
+`CLAUDE.md` (ecosystem rules + the one job), `docs/` (vision, build plan, data model, extraction map,
+ecosystem integration, resolved decisions), and `plans/` (implementation plans + the operator-task
+queue) are local working notes — see those for the full build context.
