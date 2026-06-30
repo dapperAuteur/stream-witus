@@ -123,7 +123,30 @@ export class ScopedDb {
     return { items, total: totalRow[0]?.value ?? 0 };
   }
 
+  /** Existing active item with this external provenance, or null (Phase 4 dedup). */
+  async findByExternal(source: string, externalId: string) {
+    const [item] = await this.db
+      .select()
+      .from(mediaItems)
+      .where(
+        and(
+          eq(mediaItems.userId, this.userId),
+          eq(mediaItems.externalSource, source as never),
+          eq(mediaItems.externalId, externalId),
+          eq(mediaItems.isActive, true),
+        ),
+      )
+      .limit(1);
+    return item ?? null;
+  }
+
   async createMediaItem(input: MediaItemInput) {
+    // Idempotent re-import: a second add of the same external title returns the
+    // existing row instead of duplicating it (Phase 4 acceptance criterion).
+    if (input.externalSource && input.externalId) {
+      const existing = await this.findByExternal(input.externalSource, input.externalId);
+      if (existing) return existing;
+    }
     const [item] = await this.db
       .insert(mediaItems)
       .values({ ...input, userId: this.userId })
