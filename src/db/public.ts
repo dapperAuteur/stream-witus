@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db as defaultDb } from "./client";
+import { clubReads, clubs } from "./schema/club";
 import { mediaItems } from "./schema/media";
 import { mediaEpisodeLinks, podcastEpisodes } from "./schema/podcast";
 
@@ -78,4 +79,38 @@ export async function listPublicEpisodeMedia(episodeId: string, db: Db = default
     .innerJoin(mediaItems, eq(mediaEpisodeLinks.mediaItemId, mediaItems.id))
     .where(eq(mediaEpisodeLinks.episodeId, episodeId))
     .orderBy(asc(mediaEpisodeLinks.sortOrder));
+}
+
+/** A public ReadWitUS club by slug, or null. Private clubs 404. Discussion is NOT
+ *  exposed publicly — only the club identity + its reading list. */
+export async function getPublicClub(slug: string, db: Db = defaultDb) {
+  const [club] = await db
+    .select({
+      id: clubs.id,
+      name: clubs.name,
+      slug: clubs.slug,
+      description: clubs.description,
+    })
+    .from(clubs)
+    .where(and(eq(clubs.slug, slug), eq(clubs.visibility, "public")))
+    .limit(1);
+  return club ?? null;
+}
+
+export async function listPublicClubReads(clubId: string, db: Db = defaultDb) {
+  return db
+    .select({
+      id: clubReads.id,
+      title: clubReads.title,
+      status: clubReads.status,
+      startDate: clubReads.startDate,
+      targetEndDate: clubReads.targetEndDate,
+      mediaTitle: mediaItems.title,
+      mediaCreator: mediaItems.creator,
+      coverImageUrl: mediaItems.coverImageUrl,
+    })
+    .from(clubReads)
+    .leftJoin(mediaItems, eq(clubReads.mediaItemId, mediaItems.id))
+    .where(eq(clubReads.clubId, clubId))
+    .orderBy(desc(clubReads.createdAt));
 }

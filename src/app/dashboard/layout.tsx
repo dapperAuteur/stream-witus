@@ -15,9 +15,17 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard/media" className="text-sm font-bold text-gray-900">
-            Stream.WitUS
-          </Link>
+          <nav className="flex items-center gap-4">
+            <Link href="/dashboard/media" className="text-sm font-bold text-gray-900">
+              Stream.WitUS
+            </Link>
+            <Link href="/dashboard/media" className="text-sm text-gray-500 hover:text-gray-900">
+              Media
+            </Link>
+            <Link href="/dashboard/clubs" className="text-sm text-gray-500 hover:text-gray-900">
+              Clubs
+            </Link>
+          </nav>
           <SignOutButton />
         </div>
       </header>
