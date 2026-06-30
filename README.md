@@ -5,9 +5,10 @@ Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club, with
 progress-gated, first-class feature**. Extracted from the CentenarianOS media tracker and rebuilt on
 the WitUS ecosystem stack (mirrors `witus-learn`).
 
-> Build status: **Phases 0–6 landed** (scaffold · foundation · isolation gate · tracker UI ·
-> auto-metadata · public podcast surface · ReadWitUS book club). Ecosystem wiring (outbox/inbox) and
-> public-ready hardening follow — see the roadmap.
+> Build status: **Phases 0–7 landed** (scaffold · foundation · isolation gate · tracker UI ·
+> auto-metadata · public podcast surface · ReadWitUS book club · outbox/inbox wiring). Public-ready
+> hardening (Phase 8) follows — see the roadmap. Outbox triggers stay off until
+> `PRODUCT_OWNER_USER_ID` is set; inbox needs its `stream-witus` source provisioned (task 07).
 
 ## Stack
 

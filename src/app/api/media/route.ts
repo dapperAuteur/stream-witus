@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     totalLength: body.total_length || null,
     visibility: body.visibility || "private",
     isFavorite: body.is_favorite ?? false,
+    shareOnFinish: body.share_on_finish ?? false,
     notes: body.notes || null,
     externalSource: body.external_source ?? null,
     externalId: body.external_id ?? null,

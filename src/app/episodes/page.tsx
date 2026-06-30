@@ -35,6 +35,14 @@ export default async function PublicEpisodesPage() {
         </p>
         <h1 className="text-3xl font-bold">Episodes</h1>
         <p className="text-neutral-400">Show notes for the books, movies, and TV we cover.</p>
+        <div className="flex flex-wrap gap-2 pt-3">
+          <Link href="/connect" className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition hover:border-fuchsia-500">
+            Be on the show →
+          </Link>
+          <Link href="/pitch" className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition hover:border-fuchsia-500">
+            Pitch your media →
+          </Link>
+        </div>
       </header>
 
       {episodes.length === 0 ? (

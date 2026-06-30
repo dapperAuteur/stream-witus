@@ -125,6 +125,9 @@ export const mediaItems = pgTable(
     isFavorite: boolean("is_favorite").notNull().default(false),
     useCount: integer("use_count").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),
+    // Phase 7: when on, finishing this item (status→completed) fires an outbox
+    // draft. Decoupled from `visibility` so public-on-profile ≠ auto-announce.
+    shareOnFinish: boolean("share_on_finish").notNull().default(false),
     // NEW (docs/06 #4 / Phase 4): provenance for auto-metadata dedup + refresh.
     externalSource: text("external_source", { enum: EXTERNAL_SOURCES }),
     externalId: text("external_id"),

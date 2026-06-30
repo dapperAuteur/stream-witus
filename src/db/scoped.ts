@@ -59,6 +59,7 @@ export interface MediaItemInput {
   totalLength?: string | null;
   visibility?: (typeof VISIBILITIES)[number];
   isFavorite?: boolean;
+  shareOnFinish?: boolean;
   notes?: string | null;
   externalSource?: "tmdb" | "openlibrary" | "manual" | null;
   externalId?: string | null;

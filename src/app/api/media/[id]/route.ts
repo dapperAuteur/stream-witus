@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb, type MediaItemInput } from "@/db/scoped";
 import { badRequest, notFound, toStringArray, unauthorized } from "@/lib/api";
+import { fireMediaFinished } from "@/lib/outbox-trigger";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,7 @@ const FIELD_MAP: Record<string, keyof MediaItemInput> = {
   total_length: "totalLength",
   visibility: "visibility",
   is_favorite: "isFavorite",
+  share_on_finish: "shareOnFinish",
   notes: "notes",
   external_source: "externalSource",
   external_id: "externalId",
@@ -58,6 +60,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const item = await sdb.updateMediaItem(id, updates as Partial<MediaItemInput>);
   if (!item) return notFound();
+
+  // Phase 7: finishing a shareable item fires an outbox draft (gated + after()).
+  // Idempotent via external_ref, so re-patching a completed item won't duplicate.
+  if (updates.status === "completed" && item.shareOnFinish) {
+    fireMediaFinished(sdb.userId, item);
+  }
+
   return NextResponse.json({ item });
 }
 

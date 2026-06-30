@@ -76,6 +76,7 @@ interface MediaFormProps {
     source_platform: string | null;
     notes?: string | null;
     is_favorite: boolean;
+    share_on_finish?: boolean;
   } | null;
 }
 
@@ -103,6 +104,7 @@ const BLANK = {
   source_platform: '',
   notes: '',
   is_favorite: false,
+  share_on_finish: false,
   external_source: '' as '' | 'tmdb' | 'openlibrary' | 'manual',
   external_id: '',
 };
@@ -150,6 +152,7 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
       source_platform: editItem.source_platform ?? '',
       notes: editItem.notes ?? '',
       is_favorite: editItem.is_favorite,
+      share_on_finish: editItem.share_on_finish ?? false,
       external_source: '' as '' | 'tmdb' | 'openlibrary' | 'manual',
       external_id: '',
     };
@@ -218,6 +221,7 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
         source_platform: form.source_platform.trim() || null,
         notes: form.notes.trim() || null,
         is_favorite: form.is_favorite,
+        share_on_finish: form.share_on_finish,
       };
 
       const url = isEdit ? `/api/media/${editItem!.id}` : '/api/media';
@@ -542,6 +546,13 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
               onChange={(e) => setForm((f) => ({ ...f, is_favorite: e.target.checked }))}
               className="rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
             <span className="text-xs font-medium text-gray-600">Mark as favorite</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.share_on_finish}
+              onChange={(e) => setForm((f) => ({ ...f, share_on_finish: e.target.checked }))}
+              className="rounded border-gray-300 text-fuchsia-600 focus:ring-fuchsia-500" />
+            <span className="text-xs font-medium text-gray-600">Share a draft post when I finish this</span>
           </label>
         </div>
 

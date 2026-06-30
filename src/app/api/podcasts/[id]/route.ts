@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { fireEpisodePublished } from "@/lib/outbox-trigger";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -43,6 +44,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const episode = await sdb.updateEpisode(id, updates);
   if (!episode) return notFound();
+
+  // Phase 7: publishing an episode fires an outbox draft (gated + after()).
+  if (updates.status === "published") {
+    fireEpisodePublished(sdb.userId, episode);
+  }
+
   return NextResponse.json({ episode });
 }
 
