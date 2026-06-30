@@ -160,10 +160,10 @@ export class ScopedDb {
     return Boolean(item);
   }
 
+  /** Shape matches the CentOS hub: { totalItems, inProgress, completed, favorites, avgRating }. */
   async summary() {
     const rows = await this.db
       .select({
-        mediaType: mediaItems.mediaType,
         status: mediaItems.status,
         rating: mediaItems.rating,
         isFavorite: mediaItems.isFavorite,
@@ -171,14 +171,14 @@ export class ScopedDb {
       .from(mediaItems)
       .where(and(eq(mediaItems.userId, this.userId), eq(mediaItems.isActive, true)));
 
-    const byType: Record<string, number> = {};
-    const byStatus: Record<string, number> = {};
+    let inProgress = 0;
+    let completed = 0;
     let favorites = 0;
     let ratingSum = 0;
     let ratingCount = 0;
     for (const r of rows) {
-      byType[r.mediaType] = (byType[r.mediaType] ?? 0) + 1;
-      byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+      if (r.status === "in_progress") inProgress += 1;
+      if (r.status === "completed") completed += 1;
       if (r.isFavorite) favorites += 1;
       if (typeof r.rating === "number") {
         ratingSum += r.rating;
@@ -186,9 +186,9 @@ export class ScopedDb {
       }
     }
     return {
-      total: rows.length,
-      byType,
-      byStatus,
+      totalItems: rows.length,
+      inProgress,
+      completed,
       favorites,
       avgRating: ratingCount ? Math.round((ratingSum / ratingCount) * 100) / 100 : null,
     };
@@ -267,37 +267,84 @@ export class ScopedDb {
   }
 
   // ── Relationships (adaptations etc.) ───────────────────────────────────────
+  /**
+   * Enriched, CentOS-shaped: each row is { relationship_id, relationship_type,
+   * direction, sort_order, item }. `direction` is from the anchor item's view —
+   * "child" means the anchor is the parent and the linked item is its child.
+   */
   async listRelationships(mediaItemId: string) {
-    return this.db
-      .select()
+    const cols = {
+      relationship_id: mediaRelationships.id,
+      relationship_type: mediaRelationships.relationshipType,
+      sort_order: mediaRelationships.sortOrder,
+      itemId: mediaItems.id,
+      itemTitle: mediaItems.title,
+      itemMediaType: mediaItems.mediaType,
+      itemCover: mediaItems.coverImageUrl,
+    };
+    // Anchor is the parent → the joined (child) item; direction "child".
+    const children = await this.db
+      .select(cols)
       .from(mediaRelationships)
+      .innerJoin(mediaItems, eq(mediaRelationships.childId, mediaItems.id))
       .where(
-        and(
-          eq(mediaRelationships.userId, this.userId),
-          or(
-            eq(mediaRelationships.parentId, mediaItemId),
-            eq(mediaRelationships.childId, mediaItemId),
-          ),
-        ),
+        and(eq(mediaRelationships.userId, this.userId), eq(mediaRelationships.parentId, mediaItemId)),
       )
       .orderBy(asc(mediaRelationships.sortOrder));
+    // Anchor is the child → the joined (parent) item; direction "parent".
+    const parents = await this.db
+      .select(cols)
+      .from(mediaRelationships)
+      .innerJoin(mediaItems, eq(mediaRelationships.parentId, mediaItems.id))
+      .where(
+        and(eq(mediaRelationships.userId, this.userId), eq(mediaRelationships.childId, mediaItemId)),
+      )
+      .orderBy(asc(mediaRelationships.sortOrder));
+
+    const shape = (r: (typeof children)[number], direction: "parent" | "child") => ({
+      relationship_id: r.relationship_id,
+      relationship_type: r.relationship_type,
+      direction,
+      sort_order: r.sort_order ?? 0,
+      item: {
+        id: r.itemId,
+        title: r.itemTitle,
+        media_type: r.itemMediaType,
+        cover_image_url: r.itemCover,
+      },
+    });
+    return [...children.map((r) => shape(r, "child")), ...parents.map((r) => shape(r, "parent"))];
   }
 
+  /**
+   * Create from the anchor item's view. direction "child": anchor is the parent,
+   * relatedId is the child. direction "parent": relatedId is the parent.
+   */
   async createRelationship(input: {
-    parentId: string;
-    childId: string;
+    anchorId: string;
+    relatedId: string;
     relationshipType: (typeof mediaRelationships.relationshipType.enumValues)[number];
+    direction: "parent" | "child";
     sortOrder?: number;
   }) {
+    const parentId = input.direction === "child" ? input.anchorId : input.relatedId;
+    const childId = input.direction === "child" ? input.relatedId : input.anchorId;
+    if (parentId === childId) return null;
     // Both endpoints must belong to the owner — prevents linking to a foreign item.
     const [ownsParent, ownsChild] = await Promise.all([
-      this.ownsItem(input.parentId),
-      this.ownsItem(input.childId),
+      this.ownsItem(parentId),
+      this.ownsItem(childId),
     ]);
     if (!ownsParent || !ownsChild) return null;
     const [rel] = await this.db
       .insert(mediaRelationships)
-      .values({ ...input, userId: this.userId })
+      .values({
+        parentId,
+        childId,
+        relationshipType: input.relationshipType,
+        sortOrder: input.sortOrder ?? 0,
+        userId: this.userId,
+      })
       .returning();
     return rel;
   }
@@ -449,6 +496,50 @@ export class ScopedDb {
       .orderBy(desc(mediaItems.updatedAt));
   }
 
+  // ── Podcast episodes ─────────────────────────────────────────────────────
+  listEpisodes() {
+    return this.db
+      .select()
+      .from(podcastEpisodes)
+      .where(and(eq(podcastEpisodes.userId, this.userId), eq(podcastEpisodes.isActive, true)))
+      .orderBy(desc(podcastEpisodes.createdAt));
+  }
+
+  async createEpisode(input: Partial<typeof podcastEpisodes.$inferInsert> & { title: string }) {
+    const [ep] = await this.db
+      .insert(podcastEpisodes)
+      .values({ ...input, userId: this.userId })
+      .returning();
+    return ep;
+  }
+
+  async getEpisode(id: string) {
+    const [ep] = await this.db
+      .select()
+      .from(podcastEpisodes)
+      .where(and(eq(podcastEpisodes.id, id), eq(podcastEpisodes.userId, this.userId)))
+      .limit(1);
+    return ep ?? null;
+  }
+
+  async updateEpisode(id: string, updates: Partial<typeof podcastEpisodes.$inferInsert>) {
+    const [ep] = await this.db
+      .update(podcastEpisodes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(podcastEpisodes.id, id), eq(podcastEpisodes.userId, this.userId)))
+      .returning();
+    return ep ?? null;
+  }
+
+  async softDeleteEpisode(id: string): Promise<boolean> {
+    const [ep] = await this.db
+      .update(podcastEpisodes)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(and(eq(podcastEpisodes.id, id), eq(podcastEpisodes.userId, this.userId)))
+      .returning({ id: podcastEpisodes.id });
+    return Boolean(ep);
+  }
+
   // ── Podcast episode ↔ media links ───────────────────────────────────────────
   private async ownsEpisode(episodeId: string): Promise<boolean> {
     const [row] = await this.db
@@ -459,12 +550,19 @@ export class ScopedDb {
     return Boolean(row);
   }
 
+  /** Flattened to the CentOS shape the episode-detail page consumes. */
   async listEpisodeLinks(episodeId: string) {
     if (!(await this.ownsEpisode(episodeId))) return null;
     return this.db
       .select({
-        link: mediaEpisodeLinks,
-        item: mediaItems,
+        id: mediaEpisodeLinks.id,
+        media_item_id: mediaEpisodeLinks.mediaItemId,
+        discussion_notes: mediaEpisodeLinks.discussionNotes,
+        timestamp_start: mediaEpisodeLinks.timestampStart,
+        title: mediaItems.title,
+        media_type: mediaItems.mediaType,
+        creator: mediaItems.creator,
+        cover_image_url: mediaItems.coverImageUrl,
       })
       .from(mediaEpisodeLinks)
       .innerJoin(mediaItems, eq(mediaEpisodeLinks.mediaItemId, mediaItems.id))

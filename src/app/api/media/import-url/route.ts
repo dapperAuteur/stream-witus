@@ -8,9 +8,12 @@ import { getSessionUserId } from "@/lib/session";
 
 interface Prefill {
   title?: string;
-  creator?: string;
-  cover_image_url?: string;
-  year_released?: number;
+  media_type: string | null;
+  creator?: string | null;
+  cover_image_url?: string | null;
+  year_released?: number | null;
+  genre: string[];
+  notes: string | null;
   external_url: string;
 }
 
@@ -69,14 +72,19 @@ export async function POST(request: NextRequest) {
 
   const jsonLd = fromJsonLd(html);
   const ogYear = firstMeta(html, "og:video:release_date") ?? firstMeta(html, "book:release_date");
+  // CentOS contract: prefill fields at the top level (ImportUrlDialog reads them
+  // directly and passes the object straight into MediaForm's prefill).
   const prefill: Prefill = {
     external_url: url,
     title: jsonLd.title ?? firstMeta(html, "og:title") ?? html.match(/<title>([^<]+)<\/title>/i)?.[1],
-    creator: jsonLd.creator ?? firstMeta(html, "author") ?? firstMeta(html, "book:author"),
-    cover_image_url: jsonLd.cover_image_url ?? firstMeta(html, "og:image"),
+    media_type: null,
+    creator: jsonLd.creator ?? firstMeta(html, "author") ?? firstMeta(html, "book:author") ?? null,
+    cover_image_url: jsonLd.cover_image_url ?? firstMeta(html, "og:image") ?? null,
     year_released:
-      jsonLd.year_released ?? (ogYear ? Number(String(ogYear).slice(0, 4)) || undefined : undefined),
+      jsonLd.year_released ?? (ogYear ? Number(String(ogYear).slice(0, 4)) || null : null),
+    genre: [],
+    notes: null,
   };
 
-  return NextResponse.json({ prefill });
+  return NextResponse.json(prefill);
 }
