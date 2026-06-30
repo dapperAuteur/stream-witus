@@ -67,9 +67,10 @@ describe.skipIf(!hasTestDb)("owner isolation (ScopedDb)", () => {
     const b = new ScopedDb(owners.ownerB, db);
     const bItem = await b.createMediaItem({ title: "B's movie", mediaType: "movie" });
     const rel = await b.createRelationship({
-      parentId: bItem.id,
-      childId: aItemId,
+      anchorId: bItem.id,
+      relatedId: aItemId,
       relationshipType: "adaptation_of",
+      direction: "child",
     });
     expect(rel).toBeNull();
   });

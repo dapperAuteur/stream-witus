@@ -5,8 +5,9 @@ import { badRequest, unauthorized } from "@/lib/api";
 export async function GET() {
   const sdb = await getScopedDb();
   if (!sdb) return unauthorized();
+  // CentOS contract: a bare array (the autocomplete + settings UI expect this).
   const creators = await sdb.listCreators();
-  return NextResponse.json({ creators });
+  return NextResponse.json(creators);
 }
 
 export async function POST(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
   if (!sdb) return unauthorized();
   const body = await request.json();
   if (!body?.name?.trim()) return badRequest("name is required");
-  // Upsert: reusing a name bumps use_count (autocomplete ranking).
+  // Upsert: reusing a name bumps use_count (autocomplete ranking). Bare row out.
   const creator = await sdb.upsertCreator(body.name.trim());
-  return NextResponse.json({ creator }, { status: 201 });
+  return NextResponse.json(creator, { status: 201 });
 }

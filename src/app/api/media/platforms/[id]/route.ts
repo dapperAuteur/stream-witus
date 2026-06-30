@@ -12,7 +12,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!body?.name?.trim()) return badRequest("name is required");
   const platform = await sdb.updatePlatform(id, body.name.trim());
   if (!platform) return notFound();
-  return NextResponse.json({ platform });
+  return NextResponse.json(platform);
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
@@ -21,5 +21,5 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const ok = await sdb.deletePlatform(id);
   if (!ok) return notFound();
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ deleted: true });
 }

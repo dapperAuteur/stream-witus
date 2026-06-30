@@ -5,8 +5,8 @@ Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club, with
 progress-gated, first-class feature**. Extracted from the CentenarianOS media tracker and rebuilt on
 the WitUS ecosystem stack (mirrors `witus-learn`).
 
-> Build status: **Phases 0–2 landed** (scaffold · foundation · isolation gate). The tracker UI,
-> auto-metadata, podcast surface, and ReadWitUS club follow — see the roadmap.
+> Build status: **Phases 0–3 landed** (scaffold · foundation · isolation gate · core tracker UI).
+> Auto-metadata, the public podcast surface, and the ReadWitUS club follow — see the roadmap.
 
 ## Stack
 
@@ -51,13 +51,23 @@ accepted.
 | `pnpm db:migrate` | Apply migrations to Neon (reads `.env.local`) |
 | `pnpm seed` | Seed dev data |
 
-## API surface (Phase 1)
+## Using the app (Phase 3)
+
+Sign in at `/signin` (magic link — until Mailgun is configured, the link is printed to the dev server
+console). After sign-in you land on `/dashboard/media`: add/edit/list/detail media items, write notes
+(incl. spoilers, with optional audio), link adaptations/relationships, manage creators & platforms
+(`/dashboard/media/settings`), plan podcast episodes and link discussed titles
+(`/dashboard/media/podcasts`), import from a URL, and export CSV. Every `/dashboard` route is
+owner-gated (redirects to `/signin`).
+
+## API surface
 
 Ported from CentenarianOS, rewritten Supabase → Drizzle through `ScopedDb`, auth swapped to Better
-Auth. The `/api/media/*` request/response contract is preserved so the Phase 3 UI ports unchanged:
+Auth, with the CentOS request/response contract preserved so the UI ports unchanged:
 `media` (list/create) · `media/[id]` · `media/[id]/notes[/{noteId}]` · `media/[id]/relationships` ·
 `media/categories[/{id}]` · `media/creators[/{id}]` · `media/platforms[/{id}]` · `media/export` ·
-`media/import` · `media/import-url` · `media/summary` · `podcasts/[id]/media`.
+`media/import` · `media/import-url` · `media/summary` · `podcasts` (list/create) · `podcasts/[id]`
+(get/patch/delete) · `podcasts/[id]/media` (link/unlink).
 
 ## Project docs
 

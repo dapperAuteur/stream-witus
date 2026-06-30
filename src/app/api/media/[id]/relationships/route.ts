@@ -20,15 +20,18 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json();
 
-  const childId = body.child_id ?? body.related_id;
-  if (!childId) return badRequest("child_id is required");
+  const relatedId = body.related_id ?? body.child_id;
+  if (!relatedId) return badRequest("related_id is required");
   if (!body.relationship_type) return badRequest("relationship_type is required");
+  if (relatedId === id) return badRequest("Cannot link an item to itself");
 
-  // The route's [id] is the parent; child must also be owned (enforced in ScopedDb).
+  // direction is from the anchor item's view; both endpoints must be owned (ScopedDb).
+  const direction: "parent" | "child" = body.direction === "parent" ? "parent" : "child";
   const relationship = await sdb.createRelationship({
-    parentId: id,
-    childId,
+    anchorId: id,
+    relatedId,
     relationshipType: body.relationship_type,
+    direction,
     sortOrder: body.sort_order ?? 0,
   });
   if (!relationship) return notFound();
