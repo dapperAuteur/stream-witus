@@ -57,8 +57,8 @@ Sign in at `/signin` (magic link — until Mailgun is configured, the link is pr
 console). After sign-in you land on `/dashboard/media`: add/edit/list/detail media items, write notes
 (incl. spoilers, with optional audio), link adaptations/relationships, manage creators & platforms
 (`/dashboard/media/settings`), plan podcast episodes and link discussed titles
-(`/dashboard/media/podcasts`), import from a URL, and export CSV. Every `/dashboard` route is
-owner-gated (redirects to `/signin`).
+(`/dashboard/media/podcasts`), **Find** a title via Open Library / TMDB to auto-fill details,
+import from a URL, and export CSV. Every `/dashboard` route is owner-gated (redirects to `/signin`).
 
 ## API surface
 
@@ -66,8 +66,9 @@ Ported from CentenarianOS, rewritten Supabase → Drizzle through `ScopedDb`, au
 Auth, with the CentOS request/response contract preserved so the UI ports unchanged:
 `media` (list/create) · `media/[id]` · `media/[id]/notes[/{noteId}]` · `media/[id]/relationships` ·
 `media/categories[/{id}]` · `media/creators[/{id}]` · `media/platforms[/{id}]` · `media/export` ·
-`media/import` · `media/import-url` · `media/summary` · `podcasts` (list/create) · `podcasts/[id]`
-(get/patch/delete) · `podcasts/[id]/media` (link/unlink).
+`media/import` · `media/import-url` · `media/lookup` (Open Library / TMDB auto-metadata) ·
+`media/summary` · `podcasts` (list/create) · `podcasts/[id]` (get/patch/delete) ·
+`podcasts/[id]/media` (link/unlink).
 
 ## Project docs
 

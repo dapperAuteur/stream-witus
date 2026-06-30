@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Star, BookOpen, Tv, Film, Music, Download, Globe, Settings } from 'lucide-react';
+import { Plus, Star, BookOpen, Tv, Film, Music, Download, Globe, Search, Settings } from 'lucide-react';
 import { offlineFetch } from '@/lib/offline/offline-fetch';
 import MediaCard, { type MediaItem } from '@/components/media/MediaCard';
 import MediaForm, { type MediaPrefill } from '@/components/media/MediaForm';
 import ImportUrlDialog from '@/components/media/ImportUrlDialog';
+import MetadataSearchDialog from '@/components/media/MetadataSearchDialog';
 import Link from 'next/link';
 
 const TYPE_FILTERS = [
@@ -50,6 +51,7 @@ export default function MediaHubPage() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MediaItem | null>(null);
   const [showImportUrl, setShowImportUrl] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [prefill, setPrefill] = useState<MediaPrefill | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -136,6 +138,12 @@ export default function MediaHubPage() {
             className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5">
             <Download className="w-4 h-4" /> Export
           </a>
+          <button
+            onClick={() => setShowSearch(true)}
+            className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5"
+          >
+            <Search className="w-4 h-4" /> Find
+          </button>
           <button
             onClick={() => setShowImportUrl(true)}
             className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5"
@@ -272,6 +280,18 @@ export default function MediaHubPage() {
           setPrefill(data);
           setEditItem(null);
           setShowImportUrl(false);
+          setShowForm(true);
+        }}
+      />
+
+      {/* Auto-metadata search (Open Library / TMDB) */}
+      <MetadataSearchDialog
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        onPicked={(data) => {
+          setPrefill(data);
+          setEditItem(null);
+          setShowSearch(false);
           setShowForm(true);
         }}
       />

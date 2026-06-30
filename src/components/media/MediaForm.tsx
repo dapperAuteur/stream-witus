@@ -40,6 +40,10 @@ export interface MediaPrefill {
   genre?: string[];
   notes?: string | null;
   external_url?: string;
+  // Phase 4: provenance from an Open Library / TMDB pick — carried into the
+  // create payload so re-importing the same title dedups instead of duplicating.
+  external_source?: 'tmdb' | 'openlibrary' | 'manual' | null;
+  external_id?: string | null;
 }
 
 interface MediaFormProps {
@@ -99,6 +103,8 @@ const BLANK = {
   source_platform: '',
   notes: '',
   is_favorite: false,
+  external_source: '' as '' | 'tmdb' | 'openlibrary' | 'manual',
+  external_id: '',
 };
 
 export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, editItem }: MediaFormProps) {
@@ -115,6 +121,8 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
         genre: (prefill.genre ?? []).join('; '),
         notes: prefill.notes ?? '',
         external_url: prefill.external_url ?? '',
+        external_source: prefill.external_source ?? '',
+        external_id: prefill.external_id ?? '',
       };
     }
     if (!editItem) return { ...BLANK };
@@ -142,6 +150,8 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
       source_platform: editItem.source_platform ?? '',
       notes: editItem.notes ?? '',
       is_favorite: editItem.is_favorite,
+      external_source: '' as '' | 'tmdb' | 'openlibrary' | 'manual',
+      external_id: '',
     };
   });
   const [saving, setSaving] = useState(false);
@@ -183,6 +193,9 @@ export default function MediaForm({ isOpen, onClose, onSaved, brands, prefill, e
     try {
       const payload = {
         ...(isEdit ? { id: editItem!.id } : {}),
+        ...(!isEdit && form.external_source
+          ? { external_source: form.external_source, external_id: form.external_id || null }
+          : {}),
         title: form.title.trim(),
         creator: form.creator.trim() || null,
         media_type: form.media_type,
