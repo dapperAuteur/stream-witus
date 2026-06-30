@@ -611,6 +611,26 @@ export class ScopedDb {
     return row;
   }
 
+  /** Edit a link's timestamp / discussion notes after it's created (owner-scoped). */
+  async updateEpisodeLink(
+    episodeId: string,
+    mediaItemId: string,
+    updates: { timestampStart?: string | null; discussionNotes?: string | null },
+  ) {
+    const [row] = await this.db
+      .update(mediaEpisodeLinks)
+      .set(updates)
+      .where(
+        and(
+          eq(mediaEpisodeLinks.userId, this.userId),
+          eq(mediaEpisodeLinks.episodeId, episodeId),
+          eq(mediaEpisodeLinks.mediaItemId, mediaItemId),
+        ),
+      )
+      .returning();
+    return row ?? null;
+  }
+
   async unlinkMediaFromEpisode(episodeId: string, mediaItemId: string): Promise<boolean> {
     const [row] = await this.db
       .delete(mediaEpisodeLinks)
