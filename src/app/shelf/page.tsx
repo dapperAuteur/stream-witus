@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getOwner, listOwnerPublicMedia } from "@/db/public";
+import { getFlag } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ShelfPage() {
+  if (!(await getFlag("public_profiles_enabled", true))) notFound();
   const owner = await getOwner();
   const items = owner ? await listOwnerPublicMedia(owner.id) : [];
   const name = owner?.name || "Stream.WitUS";

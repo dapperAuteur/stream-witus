@@ -43,6 +43,13 @@
       "when": 1782899874730,
       "tag": "0005_spooky_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782906125105,
+      "tag": "0006_glamorous_inertia",
+      "breakpoints": true
     }
   ]
 }

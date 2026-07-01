@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUserId, isOwnerSession } from "@/lib/session";
+import { getAdminUser, getSessionUserId } from "@/lib/session";
 import SignOutButton from "@/components/SignOutButton";
 
 // Auth gate: every /dashboard route requires a session. Unauthenticated → /signin.
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/signin");
-  const owner = await isOwnerSession();
+  const admin = await getAdminUser();
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -26,7 +26,7 @@ export default async function DashboardLayout({
             <Link href="/dashboard/clubs" className="text-sm text-gray-500 hover:text-gray-900">
               Clubs
             </Link>
-            {owner && (
+            {admin && (
               <Link href="/dashboard/admin" className="text-sm text-gray-500 hover:text-gray-900">
                 Admin
               </Link>

@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import EpisodesAdmin from "@/components/admin/EpisodesAdmin";
-import { getSessionUser } from "@/lib/session";
-import { isOwnerEmail } from "@/lib/access";
+import { canModerate, requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEpisodesPage() {
-  const user = await getSessionUser();
-  if (!user || !isOwnerEmail(user.email)) notFound();
+  if (!(await requireAdmin(canModerate))) notFound();
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

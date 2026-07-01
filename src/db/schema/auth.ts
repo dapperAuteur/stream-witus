@@ -5,12 +5,23 @@ import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 // `media_items.user_id`, `clubs.owner_user_id`, etc. FK `users.id`. Replaces
 // CentOS's Supabase `auth.users`.
 
+// Admin role tier (owner-granted). Owner (env OWNER_EMAIL) sits above all and is
+// implicit — never stored. Capability order: none < monitor < moderator < admin.
+//   monitor   — view the admin dashboard; change nothing
+//   moderator — monitor + content moderation (episode unpublish, remove a post, feature a club)
+//   admin     — everything EXCEPT managing roles/users (that's owner-only)
+export const ADMIN_ROLES = ["none", "monitor", "moderator", "admin"] as const;
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   name: text("name"),
   image: text("image"),
+  adminRole: text("admin_role", { enum: ADMIN_ROLES }).notNull().default("none"),
+  // Deactivated → blocked from signing in (sessions killed). The owner can never
+  // be deactivated/demoted (enforced in the admin routes).
+  deactivated: boolean("deactivated").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

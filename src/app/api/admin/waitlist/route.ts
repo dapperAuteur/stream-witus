@@ -2,16 +2,16 @@ import { type NextRequest, NextResponse } from "next/server";
 import { listWaitlist, setWaitlistStatus } from "@/lib/access";
 import { logAdminAction } from "@/lib/admin-data";
 import { badRequest, notFound } from "@/lib/api";
-import { getOwnerUser } from "@/lib/session";
+import { canManageSettings, canView, requireAdmin } from "@/lib/session";
 
-// Owner-only. 404 (not 403) for non-owners so the admin surface isn't discoverable.
+// 404 (not 403) for the unauthorized so the admin surface isn't discoverable.
 export async function GET() {
-  if (!(await getOwnerUser())) return notFound();
+  if (!(await requireAdmin(canView))) return notFound();
   return NextResponse.json({ entries: await listWaitlist() });
 }
 
 export async function PATCH(request: NextRequest) {
-  const owner = await getOwnerUser();
+  const owner = await requireAdmin(canManageSettings);
   if (!owner) return notFound();
   const body = await request.json();
   const email = String(body?.email ?? "").trim();

@@ -16,6 +16,16 @@ export function isOwnerEmail(email?: string | null): boolean {
   return Boolean(email && norm(email) === norm(env.OWNER_EMAIL));
 }
 
+/** The owner's user id (by OWNER_EMAIL) — owner content (episodes) is attributed here. */
+export async function getOwnerUserId(): Promise<string | null> {
+  const [u] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, norm(env.OWNER_EMAIL)))
+    .limit(1);
+  return u?.id ?? null;
+}
+
 export async function getUserEmail(userId: string): Promise<string | null> {
   const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
   return u?.email ?? null;
@@ -46,10 +56,24 @@ export async function setFlag(key: string, value: boolean): Promise<void> {
 export const signupsOpen = () => getFlag("signups_open", false);
 export const setSignupsOpen = (open: boolean) => setFlag("signups_open", open);
 
-// ── allow / waitlist ─────────────────────────────────────────────────────────
-async function userExists(email: string): Promise<boolean> {
-  const [u] = await db.select({ email: users.email }).from(users).where(eq(users.email, norm(email))).limit(1);
-  return Boolean(u);
+// ── user lookups ─────────────────────────────────────────────────────────────
+async function getUserByEmail(email: string) {
+  const [u] = await db
+    .select({ id: users.id, deactivated: users.deactivated })
+    .from(users)
+    .where(eq(users.email, norm(email)))
+    .limit(1);
+  return u ?? null;
+}
+
+/** Admin role + deactivation for a user id (for the admin gate). */
+export async function getUserFlags(userId: string) {
+  const [u] = await db
+    .select({ adminRole: users.adminRole, deactivated: users.deactivated })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return u ?? { adminRole: "none" as const, deactivated: false };
 }
 
 async function waitlistApproved(email: string): Promise<boolean> {
@@ -65,7 +89,8 @@ async function waitlistApproved(email: string): Promise<boolean> {
 export async function isAllowedToSignIn(email: string): Promise<boolean> {
   const e = norm(email);
   if (isOwnerEmail(e)) return true;
-  if (await userExists(e)) return true;
+  const existing = await getUserByEmail(e);
+  if (existing) return !existing.deactivated; // members stay allowed unless deactivated
   if (await signupsOpen()) return true;
   return waitlistApproved(e);
 }

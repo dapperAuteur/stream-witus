@@ -1,12 +1,48 @@
 import "server-only";
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
+import { sessions, users } from "@/db/schema/auth";
+import type { ADMIN_ROLES } from "@/db/schema/auth";
 import { adminAuditLog, type INBOX_STATUSES, inboxSubmissions, outboxLog, waitlist } from "@/db/schema/admin";
 import { clubs } from "@/db/schema/club";
 import { mediaItems } from "@/db/schema/media";
 import { podcastEpisodes } from "@/db/schema/podcast";
 import { getFlag } from "./access";
-import { env } from "./env";
+import { env, hasCloudinary, hasMailgun, hasTmdb } from "./env";
+
+// ── Integration / config health ──────────────────────────────────────────────
+export async function integrationHealth() {
+  const [fail] = await db.select({ v: count() }).from(outboxLog).where(eq(outboxLog.ok, false));
+  return {
+    tmdb: hasTmdb,
+    cloudinary: hasCloudinary,
+    mailgun: hasMailgun,
+    inbox: Boolean(env.INBOX_INGEST_URL && env.INBOX_SOURCE_SLUG && env.INBOX_INGEST_SECRET),
+    outbox: Boolean(env.OUTBOX_INGEST_URL && env.OUTBOX_SOURCE_SLUG && env.OUTBOX_INGEST_SECRET),
+    outboxFailures: fail?.v ?? 0,
+  };
+}
+
+// ── Feature flags (curated, enforced) ────────────────────────────────────────
+export const FEATURE_FLAGS = [
+  { key: "club_creation_open", label: "Club creation open", fallback: true },
+  { key: "public_profiles_enabled", label: "Public profiles (/shelf)", fallback: true },
+] as const;
+
+export async function featureFlags(): Promise<Record<string, boolean>> {
+  const out: Record<string, boolean> = {};
+  for (const f of FEATURE_FLAGS) out[f.key] = await getFlag(f.key, f.fallback);
+  return out;
+}
+
+async function ownerId(): Promise<string | null> {
+  const [u] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, env.OWNER_EMAIL.toLowerCase()))
+    .limit(1);
+  return u?.id ?? null;
+}
 
 // ── Inbox triage (local mirror of inbound forms) ─────────────────────────────
 export function listInboxSubmissions(limit = 100) {
@@ -36,6 +72,38 @@ export function listOutboxLog(limit = 50) {
   return db.select().from(outboxLog).orderBy(desc(outboxLog.createdAt)).limit(limit);
 }
 
+// ── Members / users (owner-managed) ──────────────────────────────────────────
+export function listUsers() {
+  return db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      adminRole: users.adminRole,
+      deactivated: users.deactivated,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function getUserRow(id: string) {
+  const [u] = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.id, id)).limit(1);
+  return u ?? null;
+}
+
+export async function setUserRole(id: string, role: (typeof ADMIN_ROLES)[number]) {
+  const [u] = await db.update(users).set({ adminRole: role, updatedAt: new Date() }).where(eq(users.id, id)).returning({ id: users.id });
+  return Boolean(u);
+}
+
+/** Deactivate/reactivate. Deactivating also kills the user's active sessions. */
+export async function setUserDeactivated(id: string, deactivated: boolean) {
+  const [u] = await db.update(users).set({ deactivated, updatedAt: new Date() }).where(eq(users.id, id)).returning({ id: users.id });
+  if (u && deactivated) await db.delete(sessions).where(eq(sessions.userId, id));
+  return Boolean(u);
+}
+
 // ── Admin audit log ──────────────────────────────────────────────────────────
 export async function logAdminAction(
   actor: { id: string; email: string },
@@ -60,9 +128,10 @@ export function listAuditLog(limit = 100) {
 }
 
 // ── Content stats (at-a-glance) ──────────────────────────────────────────────
-export async function contentStats(ownerId: string) {
+export async function contentStats() {
+  const oid = (await ownerId()) ?? "";
   const scoped = (extra?: ReturnType<typeof eq>) =>
-    and(eq(mediaItems.userId, ownerId), eq(mediaItems.isActive, true), extra);
+    and(eq(mediaItems.userId, oid), eq(mediaItems.isActive, true), extra);
   const [
     mediaTotal,
     mediaInProgress,
@@ -78,9 +147,9 @@ export async function contentStats(ownerId: string) {
     db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.status, "in_progress"))),
     db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.status, "completed"))),
     db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.visibility, "public"))),
-    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, ownerId), eq(podcastEpisodes.isActive, true))),
-    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, ownerId), eq(podcastEpisodes.status, "published"))),
-    db.select({ v: count() }).from(clubs).where(eq(clubs.ownerUserId, ownerId)),
+    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, oid), eq(podcastEpisodes.isActive, true))),
+    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, oid), eq(podcastEpisodes.status, "published"))),
+    db.select({ v: count() }).from(clubs).where(eq(clubs.ownerUserId, oid)),
     db.select({ v: count() }).from(waitlist).where(eq(waitlist.status, "waiting")),
     db.select({ v: count() }).from(inboxSubmissions).where(eq(inboxSubmissions.status, "new")),
   ]);
