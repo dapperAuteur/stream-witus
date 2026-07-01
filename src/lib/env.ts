@@ -32,6 +32,10 @@ const schema = z.object({
   // PRODUCT_OWNER_USER_ID.) Compared case-insensitively.
   OWNER_EMAIL: z.string().email().default("bam@awews.com"),
 
+  // Vercel Cron auth. When set, the daily podcast auto-import endpoint requires
+  // `Authorization: Bearer <CRON_SECRET>` (Vercel injects it for scheduled crons).
+  CRON_SECRET: z.string().optional(),
+
   // Email (Mailgun) — magic-link delivery.
   MAILGUN_API_KEY: z.string().optional(),
   MAILGUN_DOMAIN: z.string().optional(),
