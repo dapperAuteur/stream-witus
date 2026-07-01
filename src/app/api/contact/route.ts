@@ -1,6 +1,7 @@
+import { after } from "next/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
-import { isBot, isEmail, submitToInbox } from "@/lib/inbox";
+import { isBot, isEmail, recordInboxSubmission, submitToInbox } from "@/lib/inbox";
 
 // Public "be on the show" form (guest / co-host). No auth.
 export async function POST(request: NextRequest) {
@@ -17,11 +18,12 @@ export async function POST(request: NextRequest) {
   if (!isEmail(email)) return badRequest("a valid email is required");
   if (!topic) return badRequest("tell us what you'd talk about");
 
-  const result = await submitToInbox("be-on-show", {
-    name,
-    email,
-    payload: { role, topic, link: String(body.link ?? "").trim() || null },
+  // Local mirror is the reliable capture (owner triages it in admin); the forward
+  // to witus-inbox is best-effort. Both run after() so the form always succeeds.
+  const payload = { role, topic, link: String(body.link ?? "").trim() || null };
+  after(async () => {
+    await recordInboxSubmission("be-on-show", { name, email, payload });
+    await submitToInbox("be-on-show", { name, email, payload });
   });
-  if (!result.ok) return NextResponse.json({ error: "Could not send — please try again" }, { status: 502 });
   return NextResponse.json({ ok: true });
 }

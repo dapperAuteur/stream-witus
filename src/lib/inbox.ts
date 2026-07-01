@@ -1,6 +1,19 @@
 import "server-only";
+import { db } from "@/db/client";
+import { inboxSubmissions } from "@/db/schema/admin";
 import { env } from "./env";
 import { sendToInbox } from "./sender-inbox";
+
+/** Mirror a submission locally so the owner can triage inline in admin. Best-effort. */
+export async function recordInboxSubmission(
+  formType: string,
+  data: { name?: string | null; email?: string | null; payload?: Record<string, unknown> },
+): Promise<void> {
+  await db
+    .insert(inboxSubmissions)
+    .values({ formType, name: data.name ?? null, email: data.email ?? null, payload: data.payload ?? {} })
+    .catch(() => {});
+}
 
 export const hasInbox = Boolean(
   env.INBOX_INGEST_URL && env.INBOX_SOURCE_SLUG && env.INBOX_INGEST_SECRET,

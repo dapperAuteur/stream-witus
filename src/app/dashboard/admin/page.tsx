@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminPanel from "@/components/admin/AdminPanel";
+import InboxPanel from "@/components/admin/InboxPanel";
+import OutboxPanel from "@/components/admin/OutboxPanel";
 import { getSessionUser } from "@/lib/session";
 import { isOwnerEmail } from "@/lib/access";
 
@@ -23,6 +25,8 @@ export default async function AdminPage() {
         <h2 className="text-sm font-semibold text-gray-700">Podcast episodes →</h2>
         <p className="text-xs text-gray-500 mt-0.5">Import from Disctopia, manage, and publish across shows.</p>
       </Link>
+      <InboxPanel />
+      <OutboxPanel />
       <AdminPanel ownerId={user.id} />
     </div>
   );

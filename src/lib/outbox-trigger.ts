@@ -1,8 +1,15 @@
 import "server-only";
 import { after } from "next/server";
-import { isOwnerUserId } from "./access";
-import { env, outboxEnabled } from "./env";
+import { db } from "@/db/client";
+import { outboxLog } from "@/db/schema/admin";
+import { getFlag, isOwnerUserId } from "./access";
+import { env } from "./env";
 import { sendToOutbox, type OutboxPlatform } from "./sender-outbox";
+
+/** Effective master switch: the DB flag wins, falling back to the env kill-switch. */
+async function outboxMasterOn(): Promise<boolean> {
+  return getFlag("outbox_enabled", env.OUTBOX_TRIGGER_ENABLED === "true");
+}
 
 // The layered-gate helper (per witus-outbox INTEGRATE.md). Every outbox post goes
 // through fireOutboxDrafts so the three gates and the "never log content" rule live
@@ -25,10 +32,11 @@ interface DraftSpec {
   /** Per-show override of the outbox source (multi-show podcasts, plans/04). */
   sourceSlug?: string;
   hmacSecret?: string;
+  /** Which trigger fired — gates on the per-trigger admin toggle + labels the log. */
+  triggerKey?: string;
 }
 
 function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
-  if (!outboxEnabled) return; // Gate 1 (kill-switch)
   const outboxUrl = env.OUTBOX_INGEST_URL;
   const sourceSlug = spec.sourceSlug ?? env.OUTBOX_SOURCE_SLUG;
   const hmacSecret = spec.hmacSecret ?? env.OUTBOX_INGEST_SECRET;
@@ -36,7 +44,9 @@ function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
   const media = spec.mediaUrls ?? [];
 
   after(async () => {
-    // Gate 2 (owner-only) — resolved by email, so it needs a DB read; do it here.
+    // Gates (owner + master + per-trigger) resolve against the DB, so run them here.
+    if (!(await outboxMasterOn())) return; // master kill-switch (DB, env fallback)
+    if (spec.triggerKey && !(await getFlag(`outbox_trigger_${spec.triggerKey}`, true))) return;
     if (!(await isOwnerUserId(triggerUserId))) return;
     // Drafts: outbox waives the lead-time check; the placeholder is replaced when
     // BAM promotes the draft in /outbox/[id].
@@ -63,7 +73,12 @@ function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
           as_draft: true,
         },
       });
-      // Iron rule: log only source/platform/external_ref/http_status — never caption/secret/sig.
+      // Iron rule: record only source/platform/external_ref/http_status — never
+      // caption/secret/sig. Persist to outbox_log for the admin activity view.
+      await db
+        .insert(outboxLog)
+        .values({ source: sourceSlug, platform, externalRef, httpStatus: result.status, ok: result.ok })
+        .catch(() => {});
       if (!result.ok) {
         console.error("[outbox] failed", { source: sourceSlug, platform, external_ref: externalRef, http_status: result.status });
       }
@@ -91,6 +106,7 @@ export function fireMediaFinished(
   const oneline = oneLiner(`Just finished ${verb} "${item.title}"${by}.${stars}`);
   fireOutboxDrafts(triggerUserId, {
     externalRefBase: `media-${item.id}`,
+    triggerKey: "finished_media",
     mediaUrls: item.coverImageUrl ? [item.coverImageUrl] : [],
     captions: {
       linkedin: oneLiner(`Just finished ${verb} "${item.title}"${by}.${stars}\n\nTracked on Stream.WitUS.`),
@@ -111,6 +127,7 @@ export function fireEpisodePublished(
   const oneline = oneLiner(`New All The Spoilers${num}: "${episode.title}". ${url}`);
   fireOutboxDrafts(triggerUserId, {
     externalRefBase: `episode-${episode.id}`,
+    triggerKey: "episode_published",
     captions: {
       linkedin: oneLiner(`New All The Spoilers episode${num}: "${episode.title}".\n\nShow notes: ${url}`),
       twitter: oneline,
@@ -136,7 +153,7 @@ export function firePodcastEpisode(
   },
   show: { name: string; outboxSlugEnvKey: string | null; outboxSecretEnvKey: string | null },
 ): void {
-  if (!outboxEnabled) return;
+  // Master/owner/per-trigger gating happens in fireOutboxDrafts (DB-backed).
   const sourceSlug = show.outboxSlugEnvKey ? process.env[show.outboxSlugEnvKey] : undefined;
   const hmacSecret = show.outboxSecretEnvKey ? process.env[show.outboxSecretEnvKey] : undefined;
   if (!sourceSlug || !hmacSecret) {
@@ -161,6 +178,7 @@ export function firePodcastEpisode(
 
   fireOutboxDrafts(triggerUserId, {
     externalRefBase: `episode-${episode.id}`,
+    triggerKey: "episode_published",
     sourceSlug,
     hmacSecret,
     mediaUrls: episode.artworkUrl ? [episode.artworkUrl] : [],
@@ -177,6 +195,7 @@ export function fireClubNewRead(
   const oneline = oneLiner(`${club.name} is now reading "${read.title}".`);
   fireOutboxDrafts(triggerUserId, {
     externalRefBase: `clubread-${read.id}`,
+    triggerKey: "club_read",
     mediaUrls: read.coverImageUrl ? [read.coverImageUrl] : [],
     captions: {
       linkedin: oneLiner(`${club.name} (a ReadWitUS book club) is now reading "${read.title}". Join the conversation.`),

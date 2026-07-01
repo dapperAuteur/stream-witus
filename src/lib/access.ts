@@ -27,19 +27,24 @@ export async function isOwnerUserId(userId: string): Promise<boolean> {
   return isOwnerEmail(await getUserEmail(userId));
 }
 
-// ── signups_open flag ────────────────────────────────────────────────────────
-export async function signupsOpen(): Promise<boolean> {
-  const [row] = await db.select().from(appSettings).where(eq(appSettings.key, "signups_open")).limit(1);
-  return row?.value === "true";
+// ── app_settings flags ───────────────────────────────────────────────────────
+/** A boolean flag from app_settings, or `fallback` when the key isn't set. */
+export async function getFlag(key: string, fallback: boolean): Promise<boolean> {
+  const [row] = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+  if (!row) return fallback;
+  return row.value === "true";
 }
 
-export async function setSignupsOpen(open: boolean): Promise<void> {
-  const value = open ? "true" : "false";
+export async function setFlag(key: string, value: boolean): Promise<void> {
+  const v = value ? "true" : "false";
   await db
     .insert(appSettings)
-    .values({ key: "signups_open", value })
-    .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
+    .values({ key, value: v })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value: v, updatedAt: new Date() } });
 }
+
+export const signupsOpen = () => getFlag("signups_open", false);
+export const setSignupsOpen = (open: boolean) => setFlag("signups_open", open);
 
 // ── allow / waitlist ─────────────────────────────────────────────────────────
 async function userExists(email: string): Promise<boolean> {
