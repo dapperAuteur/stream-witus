@@ -137,8 +137,12 @@ export async function importEpisodes(userId: string, showId: string, parsed: Par
         showNotes: e.showNotes || e.title,
         showNotesExcerpt: e.showNotesExcerpt || e.title,
         artworkUrl: e.artworkUrl,
+        audioUrl: e.audioUrl,
+        audioLengthBytes: e.audioLength,
+        audioMime: e.audioType,
         externalUrl: e.disctopiaUrl,
         disctopiaGuid: e.guid,
+        publishedAt: e.pubDate,
         status: "draft", // never auto-fires; BAM re-publishes intentionally
       });
       inserted += 1;
