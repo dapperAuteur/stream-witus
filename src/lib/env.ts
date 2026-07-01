@@ -15,6 +15,16 @@ const schema = z.object({
   BETTER_AUTH_URL: z.string().url(),
   // Extra comma-separated origins to trust for auth.
   TRUSTED_ORIGINS: z.string().optional(),
+
+  // "Sign in with WitUS" — ecosystem OIDC client against the accounts.witus.online
+  // IdP. Optional: the SSO provider + button stay off until CLIENT_ID is set, so a
+  // missing value never breaks the build or the magic-link flow. Provisioned per
+  // plans/user-tasks (client pair here + WITUS_OIDC_SECRET__STREAM on the IdP). The
+  // redirect URI the IdP expects: {BETTER_AUTH_URL}/api/auth/oauth2/callback/witus.
+  WITUS_OIDC_CLIENT_ID: z.string().optional(),
+  WITUS_OIDC_CLIENT_SECRET: z.string().optional(),
+  WITUS_OIDC_DISCOVERY_URL: z.string().url().optional(),
+
   // The single product owner (personal-first v1). Used by the owner-only outbox gate.
   PRODUCT_OWNER_USER_ID: z.string().optional(),
   // The owner/admin email: the only address allowed to sign up while signups are
@@ -109,6 +119,8 @@ export const env = parsed.data;
 /** True once the DB points at a real Neon instance (not the dev placeholder). */
 export const hasDatabase = !env.DATABASE_URL.includes("placeholder");
 export const hasMailgun = Boolean(env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN);
+/** True once the WitUS SSO client is provisioned — gates the provider + the button. */
+export const hasWitusSso = Boolean(env.WITUS_OIDC_CLIENT_ID);
 export const hasTmdb = Boolean(env.TMDB_API_KEY);
 export const hasCloudinary = Boolean(
   env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
