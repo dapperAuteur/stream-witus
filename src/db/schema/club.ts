@@ -30,6 +30,8 @@ export const clubs = pgTable("clubs", {
   visibility: text("visibility", { enum: ["private", "public"] as const })
     .notNull()
     .default("private"),
+  // Admin (moderator+) can feature a public club on the public /clubs index.
+  featured: boolean("featured").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -109,6 +111,8 @@ export const clubDiscussion = pgTable("club_discussion", {
   // The progress gate: a post is hidden for members below this milestone.
   milestoneId: uuid("milestone_id").references(() => clubSchedule.id, { onDelete: "set null" }),
   isSpoiler: boolean("is_spoiler").notNull().default(false),
+  // Moderator takedown (soft): removed posts are hidden from members, kept for audit.
+  removed: boolean("removed").notNull().default(false),
   body: text("body").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

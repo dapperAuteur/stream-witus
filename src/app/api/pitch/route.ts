@@ -1,6 +1,7 @@
+import { after } from "next/server";
 import { type NextRequest, NextResponse } from "next/server";
 import { badRequest } from "@/lib/api";
-import { isBot, isEmail, submitToInbox } from "@/lib/inbox";
+import { isBot, isEmail, recordInboxSubmission, submitToInbox } from "@/lib/inbox";
 
 const MEDIA_TYPES = ["book", "movie", "tv_show", "podcast", "music", "other"];
 
@@ -20,11 +21,11 @@ export async function POST(request: NextRequest) {
   if (!title) return badRequest("title is required");
   if (!pitch) return badRequest("a short pitch is required");
 
-  const result = await submitToInbox("pitch-media", {
-    name,
-    email,
-    payload: { media_type: mediaType, title, link: String(body.link ?? "").trim() || null, pitch },
+  // Local mirror is the reliable capture; the forward to witus-inbox is best-effort.
+  const payload = { media_type: mediaType, title, link: String(body.link ?? "").trim() || null, pitch };
+  after(async () => {
+    await recordInboxSubmission("pitch-media", { name, email, payload });
+    await submitToInbox("pitch-media", { name, email, payload });
   });
-  if (!result.ok) return NextResponse.json({ error: "Could not send — please try again" }, { status: 502 });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getClubScoped } from "@/db/clubs";
+import { getFlag, isOwnerEmail } from "@/lib/access";
 import { badRequest, unauthorized } from "@/lib/api";
+import { getSessionUser } from "@/lib/session";
 import { slugify } from "@/lib/slug";
 
 export async function GET() {
@@ -13,6 +15,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const cdb = await getClubScoped();
   if (!cdb) return unauthorized();
+  // Feature flag: club creation can be closed by an admin (owner always allowed).
+  if (!(await getFlag("club_creation_open", true))) {
+    const user = await getSessionUser();
+    if (!isOwnerEmail(user?.email)) return badRequest("Club creation is currently closed.");
+  }
   const body = await request.json();
   if (!body?.name?.trim()) return badRequest("name is required");
   const slug = (body.slug?.trim() ? slugify(body.slug) : slugify(body.name)) || slugify(`club-${Date.now()}`);

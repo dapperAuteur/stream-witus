@@ -76,6 +76,15 @@ export default function EpisodesAdmin() {
     if (res.ok) load();
   };
 
+  const unpublish = async (id: string) => {
+    if (!confirm('Unpublish this episode? (Sets it back to Recorded; no social post.)')) return;
+    const res = await fetch(`/api/admin/episodes/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'recorded' }),
+    });
+    if (res.ok) load();
+  };
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cForm.show_id || !cForm.title.trim()) return;
@@ -169,9 +178,13 @@ export default function EpisodesAdmin() {
                   </p>
                 </div>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${STATUS_BADGE[ep.status] ?? STATUS_BADGE.draft}`}>{ep.status}</span>
-                {ep.status !== 'published' && (
+                {ep.status !== 'published' ? (
                   <button onClick={() => publish(ep.id)} className="flex items-center gap-1 px-2 py-1 bg-fuchsia-600 text-white rounded text-xs font-medium hover:bg-fuchsia-700 shrink-0">
                     <Send className="w-3 h-3" /> Publish
+                  </button>
+                ) : (
+                  <button onClick={() => unpublish(ep.id)} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium hover:bg-gray-200 shrink-0">
+                    Unpublish
                   </button>
                 )}
               </div>

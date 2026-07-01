@@ -250,7 +250,8 @@ export class ClubScoped {
       .from(clubDiscussion)
       .innerJoin(users, eq(clubDiscussion.userId, users.id))
       .leftJoin(clubSchedule, eq(clubDiscussion.milestoneId, clubSchedule.id))
-      .where(eq(clubDiscussion.clubReadId, readId))
+      // Moderator-removed posts are hidden from members.
+      .where(and(eq(clubDiscussion.clubReadId, readId), eq(clubDiscussion.removed, false)))
       .orderBy(asc(clubDiscussion.createdAt));
 
     return rows.map((r) => {

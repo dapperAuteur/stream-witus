@@ -137,10 +137,16 @@ export async function getPublicClub(slug: string, db: Db = defaultDb) {
 
 export async function listPublicClubs(db: Db = defaultDb) {
   return db
-    .select({ slug: clubs.slug, updatedAt: clubs.updatedAt })
+    .select({
+      slug: clubs.slug,
+      name: clubs.name,
+      description: clubs.description,
+      featured: clubs.featured,
+      updatedAt: clubs.updatedAt,
+    })
     .from(clubs)
     .where(eq(clubs.visibility, "public"))
-    .orderBy(asc(clubs.name));
+    .orderBy(desc(clubs.featured), asc(clubs.name));
 }
 
 export async function listPublicClubReads(clubId: string, db: Db = defaultDb) {

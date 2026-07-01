@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateAdminEpisode } from "@/db/episodes-admin";
-import { isOwnerEmail } from "@/lib/access";
+import { getOwnerUserId } from "@/lib/access";
+import { logAdminAction } from "@/lib/admin-data";
 import { badRequest, notFound } from "@/lib/api";
-import { getSessionUser } from "@/lib/session";
+import { canModerate, requireAdmin } from "@/lib/session";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,11 +16,15 @@ const FIELD_MAP: Record<string, string> = {
   artwork_url: "artworkUrl",
   external_url: "externalUrl",
   visibility: "visibility",
+  // status here is for unpublish (published→recorded/draft); PUBLISHING goes
+  // through the publish route so it fires the outbox draft.
+  status: "status",
 };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const user = await getSessionUser();
-  if (!user || !isOwnerEmail(user.email)) return notFound();
+  const admin = await requireAdmin(canModerate);
+  if (!admin) return notFound();
+  const oid = (await getOwnerUserId()) ?? "";
   const { id } = await params;
   const body = await request.json();
 
@@ -30,7 +35,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (typeof updates.title === "string") updates.title = updates.title.trim();
   if (Object.keys(updates).length === 0) return badRequest("No valid fields to update");
 
-  const episode = await updateAdminEpisode(user.id, id, updates);
+  const episode = await updateAdminEpisode(oid, id, updates);
   if (!episode) return notFound();
+  await logAdminAction(admin, "episode.edit", { targetType: "episode", targetId: id });
   return NextResponse.json({ episode });
 }

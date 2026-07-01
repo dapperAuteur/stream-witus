@@ -29,6 +29,34 @@
       "when": 1782894393389,
       "tag": "0003_warm_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782897368396,
+      "tag": "0004_chubby_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782899874730,
+      "tag": "0005_spooky_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782906125105,
+      "tag": "0006_glamorous_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782907919862,
+      "tag": "0007_stale_rogue",
+      "breakpoints": true
     }
   ]
 }
