@@ -19,9 +19,14 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Signed in as {admin.email} · role: {role}.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Signed in as {admin.email} · role: {role}.</p>
+        </div>
+        <Link href="/dashboard/admin/roadmap" className="text-sm text-fuchsia-600 hover:underline shrink-0 mt-1">
+          Roadmap →
+        </Link>
       </div>
 
       <StatsPanel />
