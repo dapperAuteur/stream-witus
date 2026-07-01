@@ -1,7 +1,10 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { type INBOX_STATUSES, inboxSubmissions, outboxLog } from "@/db/schema/admin";
+import { type INBOX_STATUSES, inboxSubmissions, outboxLog, waitlist } from "@/db/schema/admin";
+import { clubs } from "@/db/schema/club";
+import { mediaItems } from "@/db/schema/media";
+import { podcastEpisodes } from "@/db/schema/podcast";
 import { getFlag } from "./access";
 import { env } from "./env";
 
@@ -31,4 +34,43 @@ export async function outboxFlags() {
 
 export function listOutboxLog(limit = 50) {
   return db.select().from(outboxLog).orderBy(desc(outboxLog.createdAt)).limit(limit);
+}
+
+// ── Content stats (at-a-glance) ──────────────────────────────────────────────
+export async function contentStats(ownerId: string) {
+  const scoped = (extra?: ReturnType<typeof eq>) =>
+    and(eq(mediaItems.userId, ownerId), eq(mediaItems.isActive, true), extra);
+  const [
+    mediaTotal,
+    mediaInProgress,
+    mediaCompleted,
+    mediaPublic,
+    epTotal,
+    epPublished,
+    clubTotal,
+    waitlistWaiting,
+    inboxNew,
+  ] = await Promise.all([
+    db.select({ v: count() }).from(mediaItems).where(scoped()),
+    db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.status, "in_progress"))),
+    db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.status, "completed"))),
+    db.select({ v: count() }).from(mediaItems).where(scoped(eq(mediaItems.visibility, "public"))),
+    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, ownerId), eq(podcastEpisodes.isActive, true))),
+    db.select({ v: count() }).from(podcastEpisodes).where(and(eq(podcastEpisodes.userId, ownerId), eq(podcastEpisodes.status, "published"))),
+    db.select({ v: count() }).from(clubs).where(eq(clubs.ownerUserId, ownerId)),
+    db.select({ v: count() }).from(waitlist).where(eq(waitlist.status, "waiting")),
+    db.select({ v: count() }).from(inboxSubmissions).where(eq(inboxSubmissions.status, "new")),
+  ]);
+  const n = (r: { v: number }[]) => r[0]?.v ?? 0;
+  return {
+    mediaTotal: n(mediaTotal),
+    mediaInProgress: n(mediaInProgress),
+    mediaCompleted: n(mediaCompleted),
+    mediaPublic: n(mediaPublic),
+    episodes: n(epTotal),
+    episodesPublished: n(epPublished),
+    clubs: n(clubTotal),
+    waitlistWaiting: n(waitlistWaiting),
+    inboxNew: n(inboxNew),
+  };
 }
