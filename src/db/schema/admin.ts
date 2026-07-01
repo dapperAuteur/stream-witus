@@ -36,6 +36,18 @@ export const inboxSubmissions = pgTable("inbox_submissions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Accountability trail of owner/admin actions (toggles, approvals, publishes).
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: text("actor_id"),
+  actorEmail: text("actor_email"),
+  action: text("action").notNull(), // e.g. 'waitlist.approve', 'outbox.flag', 'episode.publish'
+  targetType: text("target_type"),
+  targetId: text("target_id"),
+  meta: jsonb("meta").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Content-free record of outbox attempts (iron rule: never caption/secret/sig —
 // only source/platform/external_ref/http_status). Powers the admin activity view.
 export const outboxLog = pgTable("outbox_log", {

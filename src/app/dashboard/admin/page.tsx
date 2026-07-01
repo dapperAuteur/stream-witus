@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminPanel from "@/components/admin/AdminPanel";
+import AuditPanel from "@/components/admin/AuditPanel";
 import InboxPanel from "@/components/admin/InboxPanel";
 import OutboxPanel from "@/components/admin/OutboxPanel";
 import StatsPanel from "@/components/admin/StatsPanel";
@@ -30,6 +31,7 @@ export default async function AdminPage() {
       <InboxPanel />
       <OutboxPanel />
       <AdminPanel ownerId={user.id} />
+      <AuditPanel />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { type INBOX_STATUSES, inboxSubmissions, outboxLog, waitlist } from "@/db/schema/admin";
+import { adminAuditLog, type INBOX_STATUSES, inboxSubmissions, outboxLog, waitlist } from "@/db/schema/admin";
 import { clubs } from "@/db/schema/club";
 import { mediaItems } from "@/db/schema/media";
 import { podcastEpisodes } from "@/db/schema/podcast";
@@ -34,6 +34,29 @@ export async function outboxFlags() {
 
 export function listOutboxLog(limit = 50) {
   return db.select().from(outboxLog).orderBy(desc(outboxLog.createdAt)).limit(limit);
+}
+
+// ── Admin audit log ──────────────────────────────────────────────────────────
+export async function logAdminAction(
+  actor: { id: string; email: string },
+  action: string,
+  opts: { targetType?: string; targetId?: string; meta?: Record<string, unknown> } = {},
+): Promise<void> {
+  await db
+    .insert(adminAuditLog)
+    .values({
+      actorId: actor.id,
+      actorEmail: actor.email,
+      action,
+      targetType: opts.targetType ?? null,
+      targetId: opts.targetId ?? null,
+      meta: opts.meta ?? null,
+    })
+    .catch(() => {}); // never let an audit write break the action it records
+}
+
+export function listAuditLog(limit = 100) {
+  return db.select().from(adminAuditLog).orderBy(desc(adminAuditLog.createdAt)).limit(limit);
 }
 
 // ── Content stats (at-a-glance) ──────────────────────────────────────────────

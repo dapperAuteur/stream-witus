@@ -1,15 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { buildImportPreview, getShowById, importEpisodes } from "@/db/episodes-admin";
-import { isOwnerEmail } from "@/lib/access";
+import { logAdminAction } from "@/lib/admin-data";
 import { badRequest, notFound } from "@/lib/api";
 import { fetchAndParseFeed } from "@/lib/disctopia-rss";
-import { getSessionUser } from "@/lib/session";
+import { getOwnerUser } from "@/lib/session";
 
 // Import from a Disctopia feed. mode="preview" → parse + report new/skip counts;
 // mode="commit" → insert new rows as drafts (deduped on disctopia_guid).
 export async function POST(request: NextRequest) {
-  const user = await getSessionUser();
-  if (!user || !isOwnerEmail(user.email)) return notFound();
+  const user = await getOwnerUser();
+  if (!user) return notFound();
 
   const body = await request.json();
   const mode = body?.mode === "commit" ? "commit" : "preview";
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
   if (mode === "commit") {
     const result = await importEpisodes(user.id, showId, feed.episodes);
+    await logAdminAction(user, "episode.import", { targetType: "show", targetId: showId, meta: { inserted: result.inserted, skipped: result.skipped } });
     return NextResponse.json({ ...result, channelTitle: feed.channelTitle });
   }
 

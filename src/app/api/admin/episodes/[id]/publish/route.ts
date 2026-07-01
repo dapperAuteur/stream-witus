@@ -1,22 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { publishAdminEpisode } from "@/db/episodes-admin";
-import { isOwnerEmail } from "@/lib/access";
+import { logAdminAction } from "@/lib/admin-data";
 import { notFound } from "@/lib/api";
 import { firePodcastEpisode } from "@/lib/outbox-trigger";
-import { getSessionUser } from "@/lib/session";
+import { getOwnerUser } from "@/lib/session";
 
 type Params = { params: Promise<{ id: string }> };
 
 // Publish (status→published) and fire the per-show outbox draft (gated + after()).
 // Idempotent via external_ref (episode-<id>) so a re-publish won't duplicate.
 export async function POST(_request: NextRequest, { params }: Params) {
-  const user = await getSessionUser();
-  if (!user || !isOwnerEmail(user.email)) return notFound();
+  const user = await getOwnerUser();
+  if (!user) return notFound();
   const { id } = await params;
 
   const result = await publishAdminEpisode(user.id, id);
   if (!result) return notFound();
   const { episode, show } = result;
+  await logAdminAction(user, "episode.publish", { targetType: "episode", targetId: id, meta: { show: show?.slug ?? null } });
 
   if (show) {
     firePodcastEpisode(

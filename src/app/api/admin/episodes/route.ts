@@ -1,23 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createAdminEpisode, listAllEpisodes, listShows } from "@/db/episodes-admin";
-import { isOwnerEmail } from "@/lib/access";
+import { logAdminAction } from "@/lib/admin-data";
 import { badRequest, notFound } from "@/lib/api";
-import { getSessionUser } from "@/lib/session";
-
-async function owner() {
-  const user = await getSessionUser();
-  return user && isOwnerEmail(user.email) ? user : null;
-}
+import { getOwnerUser } from "@/lib/session";
 
 export async function GET() {
-  const user = await owner();
+  const user = await getOwnerUser();
   if (!user) return notFound();
   const [episodes, shows] = await Promise.all([listAllEpisodes(user.id), listShows()]);
   return NextResponse.json({ episodes, shows });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await owner();
+  const user = await getOwnerUser();
   if (!user) return notFound();
   const body = await request.json();
   if (!body?.show_id) return badRequest("show_id is required");
@@ -32,5 +27,6 @@ export async function POST(request: NextRequest) {
     externalUrl: body.external_url ?? null,
     visibility: body.visibility === "public" ? "public" : "private",
   });
+  await logAdminAction(user, "episode.create", { targetType: "episode", targetId: episode.id });
   return NextResponse.json({ episode }, { status: 201 });
 }

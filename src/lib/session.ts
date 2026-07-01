@@ -24,3 +24,9 @@ export async function isOwnerSession(): Promise<boolean> {
   const user = await getSessionUser();
   return isOwnerEmail(user?.email);
 }
+
+/** The signed-in owner ({id,email}), or null. Use in admin routes that audit-log. */
+export async function getOwnerUser(): Promise<{ id: string; email: string } | null> {
+  const user = await getSessionUser();
+  return user && isOwnerEmail(user.email) ? user : null;
+}
