@@ -14,12 +14,12 @@ export const ROADMAP_MD = `# Stream.WitUS roadmap
   (owner/admin/moderator/monitor + deactivate) · members · feature flags · moderation (episode
   unpublish, feature a public club, discussion-post takedown).
 - **Sign in with WitUS** (ecosystem OIDC client).
+- **Admin roadmap route** + role/capability tests.
+- **Canonical iTunes-spec podcast feed** — generated per show at
+  \`/feed/podcast/<slug>/rss.xml\` (audio enclosures + channel config in admin). Feed generation done;
+  the Apple/Spotify **cutover** is an operator step (task 16).
 
-## ⏳ Next / backlog
-- Move the canonical **iTunes-spec podcast RSS feed** here from witus.online (audio enclosures, stable
-  GUIDs, feed-URL cutover). — \`plans/future/05\`
-- Role/capability test coverage; misc polish.
-
-## Operator
-- Run prod migrations; per-show outbox env + Disctopia re-import (WFC/AAMSAZ).
+## ⏳ Operator (no code left)
+- Run prod migrations; per-show outbox env + Disctopia re-import (WFC/AAMSAZ) — task 15.
+- Set each show's channel config, validate feeds, then coordinate the podcast cutover — task 16.
 `;

@@ -30,6 +30,13 @@ export const podcastShows = pgTable("podcast_shows", {
   feedUrl: text("feed_url"),
   outboxSlugEnvKey: text("outbox_slug_env_key"),
   outboxSecretEnvKey: text("outbox_secret_env_key"),
+  // iTunes-spec podcast feed channel config (plans/future/05). Set before cutover.
+  description: text("description"),
+  author: text("author"),
+  ownerEmail: text("owner_email"),
+  category: text("category"),
+  language: text("language").notNull().default("en"),
+  explicit: boolean("explicit").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -52,6 +59,9 @@ export const podcastEpisodes = pgTable("podcast_episodes", {
     .notNull()
     .default("markdown"),
   audioUrl: text("audio_url"),
+  // Audio <enclosure> metadata for the iTunes feed (captured from Disctopia import).
+  audioLengthBytes: integer("audio_length_bytes"),
+  audioMime: text("audio_mime"),
   externalUrl: text("external_url"),
   durationMin: integer("duration_min"),
   status: text("status", { enum: EPISODE_STATUSES }).notNull().default("draft"),

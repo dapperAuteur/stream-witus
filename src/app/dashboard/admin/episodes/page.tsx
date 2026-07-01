@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import EpisodesAdmin from "@/components/admin/EpisodesAdmin";
+import ShowsPanel from "@/components/admin/ShowsPanel";
 import { canModerate, requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export default async function AdminEpisodesPage() {
           Import from Disctopia, manage, and publish across shows. Publishing fires a social draft.
         </p>
       </div>
+      <ShowsPanel />
       <EpisodesAdmin />
     </div>
   );

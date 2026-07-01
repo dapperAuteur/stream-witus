@@ -5,7 +5,7 @@ import { db as defaultDb } from "./client";
 import { users } from "./schema/auth";
 import { clubReads, clubs } from "./schema/club";
 import { mediaItems } from "./schema/media";
-import { mediaEpisodeLinks, podcastEpisodes } from "./schema/podcast";
+import { mediaEpisodeLinks, podcastEpisodes, podcastShows } from "./schema/podcast";
 
 type Db = typeof defaultDb;
 
@@ -117,6 +117,44 @@ export async function listPublicEpisodeMedia(episodeId: string, db: Db = default
     .innerJoin(mediaItems, eq(mediaEpisodeLinks.mediaItemId, mediaItems.id))
     .where(eq(mediaEpisodeLinks.episodeId, episodeId))
     .orderBy(asc(mediaEpisodeLinks.sortOrder));
+}
+
+/** A podcast show by slug (for the iTunes feed channel config), or null. */
+export async function getPublicShow(slug: string, db: Db = defaultDb) {
+  const [s] = await db.select().from(podcastShows).where(eq(podcastShows.slug, slug)).limit(1);
+  return s ?? null;
+}
+
+/** Feed items: published, active episodes with an audio enclosure, newest first. */
+export async function listShowFeedEpisodes(showId: string, db: Db = defaultDb) {
+  return db
+    .select({
+      id: podcastEpisodes.id,
+      title: podcastEpisodes.title,
+      description: podcastEpisodes.description,
+      showNotes: podcastEpisodes.showNotes,
+      showNotesExcerpt: podcastEpisodes.showNotesExcerpt,
+      episodeNumber: podcastEpisodes.episodeNumber,
+      seasonNumber: podcastEpisodes.seasonNumber,
+      durationMin: podcastEpisodes.durationMin,
+      audioUrl: podcastEpisodes.audioUrl,
+      audioLengthBytes: podcastEpisodes.audioLengthBytes,
+      audioMime: podcastEpisodes.audioMime,
+      artworkUrl: podcastEpisodes.artworkUrl,
+      externalUrl: podcastEpisodes.externalUrl,
+      disctopiaGuid: podcastEpisodes.disctopiaGuid,
+      publishedAt: podcastEpisodes.publishedAt,
+      createdAt: podcastEpisodes.createdAt,
+    })
+    .from(podcastEpisodes)
+    .where(
+      and(
+        eq(podcastEpisodes.showId, showId),
+        eq(podcastEpisodes.status, "published"),
+        eq(podcastEpisodes.isActive, true),
+      ),
+    )
+    .orderBy(desc(podcastEpisodes.publishedAt), desc(podcastEpisodes.createdAt));
 }
 
 /** A public ReadWitUS club by slug, or null. Private clubs 404. Discussion is NOT

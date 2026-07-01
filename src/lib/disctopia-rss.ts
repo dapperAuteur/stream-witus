@@ -11,6 +11,10 @@ export type ParsedEpisode = {
   pubDate: Date | null;
   itunesEpisode: number | null;
   itunesSeason: number | null;
+  // Audio <enclosure> — url/length/type, carried into the iTunes feed.
+  audioUrl: string | null;
+  audioLength: number | null;
+  audioType: string | null;
 };
 
 export type ParsedFeed = {
@@ -96,6 +100,9 @@ export function parseFeed(xml: string): ParsedFeed {
     const pubDate = parseDate(readText(item.pubDate));
     const itunesEpisode = parseIntOrNull(readText(item["itunes:episode"]));
     const itunesSeason = parseIntOrNull(readText(item["itunes:season"]));
+    const audioUrl = readAttr(item.enclosure, "@_url");
+    const audioLength = parseIntOrNull(readAttr(item.enclosure, "@_length"));
+    const audioType = readAttr(item.enclosure, "@_type");
 
     episodes.push({
       guid,
@@ -107,6 +114,9 @@ export function parseFeed(xml: string): ParsedFeed {
       pubDate,
       itunesEpisode,
       itunesSeason,
+      audioUrl,
+      audioLength,
+      audioType,
     });
   }
 
