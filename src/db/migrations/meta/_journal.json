@@ -50,6 +50,13 @@
       "when": 1782906125105,
       "tag": "0006_glamorous_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782907919862,
+      "tag": "0007_stale_rogue",
+      "breakpoints": true
     }
   ]
 }
