@@ -21,14 +21,16 @@ const WFC_FEED = "https://play.disctopia.com/podcast/rss?channel=bam_worlds_fast
 
 const SHOWS = [
   {
-    // All The Spoilers is a segment of the WFC podcast (same Disctopia channel),
-    // so it publishes through WFC's outbox source + feed (plans/04 follow-up).
-    // Kept as its own row so the companion label / media_episode_links stay intact.
+    // All The Spoilers is a SEGMENT of the WFC podcast — Disctopia exposes only the
+    // one WFC umbrella feed, so ATS has NO feed of its own (feedUrl: null). The cron
+    // imports the umbrella feed once, under `wfc`; ATS is a companion label BAM
+    // distinguishes with hashtags. Kept as its own row so the label +
+    // media_episode_links (book/movie ↔ episode) stay intact. See plans/04.
     slug: "all-the-spoilers",
     name: "All The Spoilers",
     outboxSlugEnvKey: "OUTBOX_PODCAST_WFC_SLUG",
     outboxSecretEnvKey: "OUTBOX_PODCAST_WFC_SECRET",
-    feedUrl: WFC_FEED,
+    feedUrl: null,
   },
   {
     slug: "wfc",
