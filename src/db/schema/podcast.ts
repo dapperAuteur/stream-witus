@@ -19,11 +19,29 @@ import { mediaItems } from "./media";
 export const SHOW_NOTES_FORMATS = ["markdown", "tiptap"] as const;
 export const EPISODE_STATUSES = ["draft", "recorded", "published"] as const;
 
+// Multi-show discriminator (plans/04). Each show carries its own Outbox slug/secret
+// env keys + default artwork + Disctopia feed URL. Seeded with all-the-spoilers /
+// wfc / aamsaz by scripts/seed-shows.ts.
+export const podcastShows = pgTable("podcast_shows", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  artworkUrl: text("artwork_url"),
+  feedUrl: text("feed_url"),
+  outboxSlugEnvKey: text("outbox_slug_env_key"),
+  outboxSecretEnvKey: text("outbox_secret_env_key"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const podcastEpisodes = pgTable("podcast_episodes", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  // Which show this episode belongs to (plans/04). Nullable for the additive
+  // migration; existing rows backfill to all-the-spoilers.
+  showId: uuid("show_id").references(() => podcastShows.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   episodeNumber: integer("episode_number"),
   seasonNumber: integer("season_number"),
@@ -42,6 +60,13 @@ export const podcastEpisodes = pgTable("podcast_episodes", {
     .notNull()
     .default("private"),
   isActive: boolean("is_active").notNull().default(true),
+  // Podcast-publishing fields absorbed from witus.online (plans/03/04).
+  artworkUrl: text("artwork_url"),
+  showNotesExcerpt: text("show_notes_excerpt"), // used by the outbox caption
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  // RSS idempotency: the Disctopia <guid>. Null for manually-created episodes;
+  // UNIQUE across non-null rows so re-import dedupes.
+  disctopiaGuid: text("disctopia_guid").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

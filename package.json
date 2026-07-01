@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "owner:id": "tsx --env-file=.env.local scripts/owner.ts",
+    "seed:shows": "tsx --env-file=.env.local scripts/seed-shows.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "better-auth": "^1.6.2",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
+    "fast-xml-parser": "^5.9.3",
     "form-data": "^4.0.5",
     "idb": "^8.0.3",
     "lucide-react": "^0.469.0",

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { getSessionUser } from "@/lib/session";
@@ -17,6 +18,11 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
         <p className="text-sm text-gray-500 mt-0.5">Signed in as {user.email} (owner).</p>
       </div>
+      <Link href="/dashboard/admin/episodes"
+        className="block bg-white border border-gray-200 rounded-2xl p-5 hover:border-fuchsia-300 transition">
+        <h2 className="text-sm font-semibold text-gray-700">Podcast episodes →</h2>
+        <p className="text-xs text-gray-500 mt-0.5">Import from Disctopia, manage, and publish across shows.</p>
+      </Link>
       <AdminPanel ownerId={user.id} />
     </div>
   );
