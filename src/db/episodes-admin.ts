@@ -17,6 +17,19 @@ export async function getShowById(id: string) {
   return s ?? null;
 }
 
+/** Update a show's iTunes channel config (feed metadata). */
+export async function updateShowConfig(
+  id: string,
+  cfg: Partial<Pick<typeof podcastShows.$inferInsert, "description" | "author" | "ownerEmail" | "category" | "language" | "explicit" | "artworkUrl">>,
+) {
+  const [s] = await db
+    .update(podcastShows)
+    .set({ ...cfg, updatedAt: new Date() })
+    .where(eq(podcastShows.id, id))
+    .returning();
+  return s ?? null;
+}
+
 export async function getShowBySlug(slug: string) {
   const [s] = await db.select().from(podcastShows).where(eq(podcastShows.slug, slug)).limit(1);
   return s ?? null;
