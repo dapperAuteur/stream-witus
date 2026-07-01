@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ScopedDb } from "../../src/db/scoped";
-import { getPublicEpisode, listPublicEpisodes } from "../../src/db/public";
+import { getPublicEpisode, listOwnerPublicMedia, listPublicEpisodes } from "../../src/db/public";
 import {
   cleanupOwners,
   closeTestDb,
@@ -46,5 +46,41 @@ describe.skipIf(!hasTestDb)("public episode read path", () => {
     const list = await listPublicEpisodes(db);
     expect(list.find((e) => e.id === epId)).toBeDefined();
     expect(list.find((e) => e.id === draft.id)).toBeUndefined();
+  });
+});
+
+// Phase 8: the public shelf must only ever surface the owner's PUBLIC items —
+// never a private item, never another owner's item.
+describe.skipIf(!hasTestDb)("public shelf (owner public media)", () => {
+  let db: TestDb;
+  let owners: SeededOwners;
+  let aPublic: string;
+  let aPrivate: string;
+  let bPublic: string;
+
+  beforeAll(async () => {
+    db = getTestDb();
+    owners = await seedTwoOwners(db);
+    const a = new ScopedDb(owners.ownerA, db);
+    const b = new ScopedDb(owners.ownerB, db);
+    aPublic = (await a.createMediaItem({ title: "A public", mediaType: "book", visibility: "public" })).id;
+    aPrivate = (await a.createMediaItem({ title: "A private", mediaType: "book", visibility: "private" })).id;
+    bPublic = (await b.createMediaItem({ title: "B public", mediaType: "book", visibility: "public" })).id;
+  });
+
+  afterAll(async () => {
+    if (owners) await cleanupOwners(db, owners);
+    await closeTestDb();
+  });
+
+  it("returns the owner's public items only — not their private ones", async () => {
+    const shelf = await listOwnerPublicMedia(owners.ownerA, db);
+    expect(shelf.find((i) => i.id === aPublic)).toBeDefined();
+    expect(shelf.find((i) => i.id === aPrivate)).toBeUndefined();
+  });
+
+  it("never includes another owner's items", async () => {
+    const shelf = await listOwnerPublicMedia(owners.ownerA, db);
+    expect(shelf.find((i) => i.id === bPublic)).toBeUndefined();
   });
 });

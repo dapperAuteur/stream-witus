@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Episodes · All The Spoilers · Stream.WitUS",
   description: "Public show notes for the All The Spoilers podcast — books, movies, and TV.",
+  alternates: { types: { "application/rss+xml": "/feed/episodes.xml" } },
 };
 
 function epTag(season: number | null, num: number | null): string | null {
@@ -42,6 +43,9 @@ export default async function PublicEpisodesPage() {
           <Link href="/pitch" className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition hover:border-fuchsia-500">
             Pitch your media →
           </Link>
+          <a href="/feed/episodes.xml" className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 transition hover:border-fuchsia-500">
+            RSS
+          </a>
         </div>
       </header>
 

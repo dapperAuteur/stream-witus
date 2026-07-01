@@ -5,10 +5,10 @@ Spoilers** podcast (books / movies / TV), plus the **ReadWitUS** book club, with
 progress-gated, first-class feature**. Extracted from the CentenarianOS media tracker and rebuilt on
 the WitUS ecosystem stack (mirrors `witus-learn`).
 
-> Build status: **Phases 0–7 landed** (scaffold · foundation · isolation gate · tracker UI ·
-> auto-metadata · public podcast surface · ReadWitUS book club · outbox/inbox wiring). Public-ready
-> hardening (Phase 8) follows — see the roadmap. Outbox triggers stay off until
-> `PRODUCT_OWNER_USER_ID` is set; inbox needs its `stream-witus` source provisioned (task 07).
+> Build status: **the full 8-phase build is complete** (scaffold · foundation · isolation gate ·
+> tracker UI · auto-metadata · public podcast surface · ReadWitUS book club · outbox/inbox wiring ·
+> public-ready hardening), plus invite-only signup + an owner admin dashboard. Post-v1 ideas live in
+> `plans/future/`. Inbox still needs its `stream-witus` source provisioned (task 07).
 
 ## Stack
 
@@ -81,9 +81,10 @@ Auth, with the CentOS request/response contract preserved so the UI ports unchan
 ReadWitUS clubs (`/dashboard/clubs`): `clubs` (list/create) · `clubs/[id]` (get/patch) ·
 `clubs/[id]/members` · `clubs/[id]/reads` · `clubs/[id]/reads/[readId]/{schedule,progress,discussion}`.
 
-Public, logged-out surfaces (read path `src/db/public.ts`): `/episodes` + `/episodes/[id]` (public
-show notes) and `/clubs/[slug]` (public club identity + reading list) for content marked
-`visibility=public`.
+Public, logged-out surfaces (read path `src/db/public.ts`): `/episodes` + `/episodes/[id]` (show
+notes), `/clubs/[slug]` (club identity + reading list), `/shelf` (the owner's public media), the
+`/connect` + `/pitch` forms, RSS at `/feed/episodes.xml` + `/feed/shelf.xml`, plus `/sitemap.xml` and
+`/robots.txt`. Everything here surfaces only `visibility=public` (or approved) content.
 
 ## Project docs
 
