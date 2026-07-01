@@ -1,0 +1,1 @@
+ALTER TABLE "media_items" ADD COLUMN "share_on_finish" boolean DEFAULT false NOT NULL;

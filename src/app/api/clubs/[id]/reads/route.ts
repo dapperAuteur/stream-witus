@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getClubScoped } from "@/db/clubs";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { fireClubNewRead } from "@/lib/outbox-trigger";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -27,5 +28,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     targetEndDate: body.target_end_date || null,
   });
   if (!read) return notFound(); // not a manager
+
+  // Phase 7: a PUBLIC club starting an active read fires an outbox draft.
+  if (read.status === "active" && read.title) {
+    const club = await cdb.getClub(id);
+    if (club?.visibility === "public") {
+      fireClubNewRead(cdb.userId, { id: read.id, title: read.title, coverImageUrl: null }, { name: club.name });
+    }
+  }
+
   return NextResponse.json({ read }, { status: 201 });
 }
