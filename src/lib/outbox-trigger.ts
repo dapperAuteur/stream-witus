@@ -1,5 +1,6 @@
 import "server-only";
 import { after } from "next/server";
+import { isOwnerUserId } from "./access";
 import { env, outboxEnabled } from "./env";
 import { sendToOutbox, type OutboxPlatform } from "./sender-outbox";
 
@@ -8,7 +9,8 @@ import { sendToOutbox, type OutboxPlatform } from "./sender-outbox";
 // in exactly one place. Triggers below build per-platform captions and call it.
 //
 //   Gate 1 — OUTBOX_TRIGGER_ENABLED !== "true"  → return (master kill-switch, default off)
-//   Gate 2 — triggerUserId !== PRODUCT_OWNER_USER_ID → return (owner-only during smoke)
+//   Gate 2 — the triggering user is not the owner → return (owner resolved by email
+//            via OWNER_EMAIL, or the legacy PRODUCT_OWNER_USER_ID)
 //   Gate 3 — fire inside Next after() so the user response is never blocked
 
 const PLATFORMS: readonly OutboxPlatform[] = ["linkedin", "twitter", "bluesky", "instagram"];
@@ -23,8 +25,7 @@ interface DraftSpec {
 }
 
 function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
-  if (!outboxEnabled) return; // Gate 1
-  if (!env.PRODUCT_OWNER_USER_ID || triggerUserId !== env.PRODUCT_OWNER_USER_ID) return; // Gate 2
+  if (!outboxEnabled) return; // Gate 1 (kill-switch)
   const outboxUrl = env.OUTBOX_INGEST_URL;
   const sourceSlug = env.OUTBOX_SOURCE_SLUG;
   const hmacSecret = env.OUTBOX_INGEST_SECRET;
@@ -32,6 +33,8 @@ function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
   const media = spec.mediaUrls ?? [];
 
   after(async () => {
+    // Gate 2 (owner-only) — resolved by email, so it needs a DB read; do it here.
+    if (!(await isOwnerUserId(triggerUserId))) return;
     // Drafts: outbox waives the lead-time check; the placeholder is replaced when
     // BAM promotes the draft in /outbox/[id].
     const scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString();

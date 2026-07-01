@@ -15,6 +15,13 @@
       "when": 1782855719784,
       "tag": "0001_crazy_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782888390413,
+      "tag": "0002_nappy_amphibian",
+      "breakpoints": true
     }
   ]
 }

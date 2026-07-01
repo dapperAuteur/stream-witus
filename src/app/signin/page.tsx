@@ -3,25 +3,48 @@
 import { useState } from 'react';
 import { signIn } from '@/lib/auth-client';
 
+type Status = 'idle' | 'checking' | 'sent' | 'waitlisted' | 'error';
+
 export default function SignInPage() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
-    setStatus('sending');
+    const addr = email.trim();
+    if (!addr) return;
+    setStatus('checking');
     setError('');
-    const { error: err } = await signIn.magicLink({
-      email: email.trim(),
-      callbackURL: '/dashboard/media',
-    });
-    if (err) {
+    try {
+      // 1) Is this email allowed to sign in, or does it go to the waitlist?
+      const statusRes = await fetch('/api/access/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: addr }),
+      });
+      const { allowed } = await statusRes.json();
+
+      if (allowed) {
+        const { error: err } = await signIn.magicLink({ email: addr, callbackURL: '/dashboard/media' });
+        if (err) {
+          setStatus('error');
+          setError(err.message ?? 'Could not send the magic link. Try again.');
+        } else {
+          setStatus('sent');
+        }
+      } else {
+        // 2) Not allowed → join the waitlist.
+        await fetch('/api/access/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: addr }),
+        });
+        setStatus('waitlisted');
+      }
+    } catch {
       setStatus('error');
-      setError(err.message ?? 'Could not send the magic link. Try again.');
-    } else {
-      setStatus('sent');
+      setError('Something went wrong. Try again.');
     }
   };
 
@@ -38,11 +61,15 @@ export default function SignInPage() {
             Check <span className="font-medium text-white">{email}</span> for your sign-in link.
             It expires in 10 minutes.
           </div>
+        ) : status === 'waitlisted' ? (
+          <div className="rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-center text-sm text-neutral-300">
+            Stream.WitUS is invite-only right now. We&apos;ve added{' '}
+            <span className="font-medium text-white">{email}</span> to the waitlist and will email you
+            when it opens.
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
-            <label htmlFor="email" className="block text-xs font-medium text-neutral-400">
-              Email
-            </label>
+            <label htmlFor="email" className="block text-xs font-medium text-neutral-400">Email</label>
             <input
               id="email"
               type="email"
@@ -54,10 +81,10 @@ export default function SignInPage() {
             />
             <button
               type="submit"
-              disabled={status === 'sending'}
+              disabled={status === 'checking'}
               className="w-full rounded-lg bg-fuchsia-600 py-2 text-sm font-medium text-white transition hover:bg-fuchsia-700 disabled:opacity-50"
             >
-              {status === 'sending' ? 'Sending…' : 'Send magic link'}
+              {status === 'checking' ? 'Checking…' : 'Continue'}
             </button>
             {error && <p className="text-sm text-red-400" role="alert">{error}</p>}
           </form>

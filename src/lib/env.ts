@@ -17,6 +17,10 @@ const schema = z.object({
   TRUSTED_ORIGINS: z.string().optional(),
   // The single product owner (personal-first v1). Used by the owner-only outbox gate.
   PRODUCT_OWNER_USER_ID: z.string().optional(),
+  // The owner/admin email: the only address allowed to sign up while signups are
+  // closed, and the identity that gates the admin dashboard. (Same human as
+  // PRODUCT_OWNER_USER_ID.) Compared case-insensitively.
+  OWNER_EMAIL: z.string().email().default("bam@awews.com"),
 
   // Email (Mailgun) — magic-link delivery.
   MAILGUN_API_KEY: z.string().optional(),

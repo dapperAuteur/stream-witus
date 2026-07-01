@@ -4,3 +4,4 @@ export * from "./media";
 export * from "./notes";
 export * from "./podcast";
 export * from "./club";
+export * from "./admin";

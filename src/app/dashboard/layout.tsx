@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUserId } from "@/lib/session";
+import { getSessionUserId, isOwnerSession } from "@/lib/session";
 import SignOutButton from "@/components/SignOutButton";
 
-// Owner gate: every /dashboard route requires a session. Unauthenticated → /signin.
+// Auth gate: every /dashboard route requires a session. Unauthenticated → /signin.
 // (Per-route data is still owner-scoped via ScopedDb; this is the UX gate.)
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/signin");
+  const owner = await isOwnerSession();
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -25,6 +26,11 @@ export default async function DashboardLayout({
             <Link href="/dashboard/clubs" className="text-sm text-gray-500 hover:text-gray-900">
               Clubs
             </Link>
+            {owner && (
+              <Link href="/dashboard/admin" className="text-sm text-gray-500 hover:text-gray-900">
+                Admin
+              </Link>
+            )}
           </nav>
           <SignOutButton />
         </div>
