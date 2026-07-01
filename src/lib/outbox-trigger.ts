@@ -22,13 +22,16 @@ interface DraftSpec {
   captions: Partial<Record<OutboxPlatform, string>>;
   /** Public https media (cover/art). Instagram is skipped when this is empty. */
   mediaUrls?: string[];
+  /** Per-show override of the outbox source (multi-show podcasts, plans/04). */
+  sourceSlug?: string;
+  hmacSecret?: string;
 }
 
 function fireOutboxDrafts(triggerUserId: string, spec: DraftSpec): void {
   if (!outboxEnabled) return; // Gate 1 (kill-switch)
   const outboxUrl = env.OUTBOX_INGEST_URL;
-  const sourceSlug = env.OUTBOX_SOURCE_SLUG;
-  const hmacSecret = env.OUTBOX_INGEST_SECRET;
+  const sourceSlug = spec.sourceSlug ?? env.OUTBOX_SOURCE_SLUG;
+  const hmacSecret = spec.hmacSecret ?? env.OUTBOX_INGEST_SECRET;
   if (!outboxUrl || !sourceSlug || !hmacSecret) return;
   const media = spec.mediaUrls ?? [];
 
@@ -114,6 +117,54 @@ export function fireEpisodePublished(
       bluesky: oneline,
       // instagram skipped automatically (episodes carry no artwork URL)
     },
+  });
+}
+
+// ── Trigger: a multi-show podcast episode was published ──────────────────────
+// Absorbed from witus.online (plans/03). Resolves the show's outbox slug + secret
+// from its env keys, mirroring witus.online's SHOW_CONFIG. Captions: LinkedIn long
+// form + Twitter/Bluesky one-liner (matching the source; no Instagram).
+export function firePodcastEpisode(
+  triggerUserId: string,
+  episode: {
+    id: string;
+    title: string;
+    episodeNumber: number | null;
+    showNotesExcerpt: string | null;
+    artworkUrl: string | null;
+    listenUrl: string | null; // disctopia / external url
+  },
+  show: { name: string; outboxSlugEnvKey: string | null; outboxSecretEnvKey: string | null },
+): void {
+  if (!outboxEnabled) return;
+  const sourceSlug = show.outboxSlugEnvKey ? process.env[show.outboxSlugEnvKey] : undefined;
+  const hmacSecret = show.outboxSecretEnvKey ? process.env[show.outboxSecretEnvKey] : undefined;
+  if (!sourceSlug || !hmacSecret) {
+    console.error("[podcast-trigger] missing outbox slug/secret for show", {
+      slug_env_key: show.outboxSlugEnvKey,
+      secret_env_key: show.outboxSecretEnvKey,
+    });
+    return;
+  }
+  const num = episode.episodeNumber != null ? ` (#${episode.episodeNumber})` : "";
+  const listen = episode.listenUrl ? `\nListen: ${episode.listenUrl}` : "";
+  const oneline = oneLiner(
+    `New ${show.name} episode: "${episode.title}".${episode.listenUrl ? ` ${episode.listenUrl}` : ""}`,
+  );
+  const long = [
+    `New ${show.name} episode${num}: "${episode.title}"`,
+    episode.showNotesExcerpt ?? "",
+    listen.trim(),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  fireOutboxDrafts(triggerUserId, {
+    externalRefBase: `episode-${episode.id}`,
+    sourceSlug,
+    hmacSecret,
+    mediaUrls: episode.artworkUrl ? [episode.artworkUrl] : [],
+    captions: { linkedin: long, twitter: oneline, bluesky: oneline },
   });
 }
 
