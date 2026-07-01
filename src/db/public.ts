@@ -1,11 +1,49 @@
 import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
+import { env } from "@/lib/env";
 import { db as defaultDb } from "./client";
+import { users } from "./schema/auth";
 import { clubReads, clubs } from "./schema/club";
 import { mediaItems } from "./schema/media";
 import { mediaEpisodeLinks, podcastEpisodes } from "./schema/podcast";
 
 type Db = typeof defaultDb;
+
+/** The owner (by OWNER_EMAIL) — subject of the public profile/shelf. Null if not seeded yet. */
+export async function getOwner(db: Db = defaultDb) {
+  const [owner] = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.email, env.OWNER_EMAIL.toLowerCase()))
+    .limit(1);
+  return owner ?? null;
+}
+
+/** The owner's PUBLIC media (visibility=public, active) — the public shelf/diary. */
+export async function listOwnerPublicMedia(ownerId: string, db: Db = defaultDb) {
+  return db
+    .select({
+      id: mediaItems.id,
+      title: mediaItems.title,
+      creator: mediaItems.creator,
+      mediaType: mediaItems.mediaType,
+      status: mediaItems.status,
+      rating: mediaItems.rating,
+      coverImageUrl: mediaItems.coverImageUrl,
+      yearReleased: mediaItems.yearReleased,
+      endDate: mediaItems.endDate,
+      updatedAt: mediaItems.updatedAt,
+    })
+    .from(mediaItems)
+    .where(
+      and(
+        eq(mediaItems.userId, ownerId),
+        eq(mediaItems.visibility, "public"),
+        eq(mediaItems.isActive, true),
+      ),
+    )
+    .orderBy(desc(mediaItems.updatedAt));
+}
 
 /**
  * The PUBLIC read path — the additive "visibility=public" dimension the
@@ -95,6 +133,14 @@ export async function getPublicClub(slug: string, db: Db = defaultDb) {
     .where(and(eq(clubs.slug, slug), eq(clubs.visibility, "public")))
     .limit(1);
   return club ?? null;
+}
+
+export async function listPublicClubs(db: Db = defaultDb) {
+  return db
+    .select({ slug: clubs.slug, updatedAt: clubs.updatedAt })
+    .from(clubs)
+    .where(eq(clubs.visibility, "public"))
+    .orderBy(asc(clubs.name));
 }
 
 export async function listPublicClubReads(clubId: string, db: Db = defaultDb) {
