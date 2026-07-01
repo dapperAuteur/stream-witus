@@ -1,7 +1,7 @@
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "./client";
-import type { ParsedEpisode } from "@/lib/disctopia-rss";
+import { fetchAndParseFeed, type ParsedEpisode } from "@/lib/disctopia-rss";
 import { podcastEpisodes, podcastShows } from "./schema/podcast";
 
 // Owner-scoped podcast admin (multi-show ingest + publish, plans/03/04). Every
@@ -129,6 +129,30 @@ export async function buildImportPreview(userId: string, parsed: ParsedEpisode[]
   }));
   const newCount = items.filter((i) => i.willInsert).length;
   return { items, newCount, skipCount: items.length - newCount };
+}
+
+/**
+ * Re-import every show that has a Disctopia feed URL (the daily cron). New episodes
+ * land as drafts; nothing auto-publishes, so no social drafts fire. Owner-attributed.
+ * A feed error on one show doesn't stop the others.
+ */
+export async function importAllShows(ownerId: string) {
+  const shows = await db
+    .select({ id: podcastShows.id, slug: podcastShows.slug, feedUrl: podcastShows.feedUrl })
+    .from(podcastShows)
+    .where(isNotNull(podcastShows.feedUrl));
+
+  const results: { slug: string; inserted?: number; skipped?: number; error?: string }[] = [];
+  for (const show of shows) {
+    try {
+      const feed = await fetchAndParseFeed(show.feedUrl as string);
+      const { inserted, skipped } = await importEpisodes(ownerId, show.id, feed.episodes);
+      results.push({ slug: show.slug, inserted, skipped });
+    } catch (err) {
+      results.push({ slug: show.slug, error: err instanceof Error ? err.message : "import failed" });
+    }
+  }
+  return results;
 }
 
 /** Insert new episodes from a parsed feed, deduped on disctopia_guid, as drafts. */
