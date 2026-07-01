@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { genericOAuth } from "better-auth/plugins";
 import { db, schema } from "@/db/client";
 import { isAllowedToSignIn } from "./access";
 import { env } from "./env";
@@ -42,12 +43,37 @@ export const auth = betterAuth({
         });
       },
     }),
+    // "Sign in with WitUS" — the ecosystem IdP as an OIDC provider. Added only once
+    // WITUS_OIDC_CLIENT_ID is set, so a missing env never breaks the build or the
+    // magic-link flow. Sign-ups via this provider are STILL gated by the
+    // user.create.before allow-list below — an unapproved WitUS account can't create
+    // a Stream account (invite-only v1 holds across both sign-in methods).
+    ...(env.WITUS_OIDC_CLIENT_ID
+      ? [
+          genericOAuth({
+            config: [
+              {
+                providerId: "witus",
+                discoveryUrl:
+                  env.WITUS_OIDC_DISCOVERY_URL ??
+                  "https://accounts.witus.online/api/idp/.well-known/openid-configuration",
+                clientId: env.WITUS_OIDC_CLIENT_ID,
+                clientSecret: env.WITUS_OIDC_CLIENT_SECRET ?? "",
+                scopes: ["openid", "email", "profile"],
+                pkce: true,
+              },
+            ],
+          }),
+        ]
+      : []),
     nextCookies(),
   ],
   databaseHooks: {
     user: {
       create: {
         // Abort account creation for any email that isn't allowed to sign up.
+        // Applies to BOTH magic-link and WitUS-SSO users — the allow-list is the
+        // single chokepoint for invite-only v1.
         before: async (user) => {
           if (!(await isAllowedToSignIn(user.email))) return false;
           return { data: user };
