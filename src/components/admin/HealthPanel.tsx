@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 interface Health {
   tmdb: boolean; cloudinary: boolean; mailgun: boolean; inbox: boolean; outbox: boolean;
+  errorMonitoring: boolean;
   outboxFailures: number;
 }
 
@@ -13,6 +14,7 @@ const LABELS: [keyof Health, string][] = [
   ['mailgun', 'Mailgun (magic-link email)'],
   ['inbox', 'Inbox.WitUS'],
   ['outbox', 'Outbox.WitUS'],
+  ['errorMonitoring', 'Error monitoring (Better Stack)'],
 ];
 
 export default function HealthPanel() {

@@ -28,6 +28,13 @@ Open Library. `@/*` → `src/*`.
 - **Membership-scoped clubs** — `src/db/clubs.ts` scopes ReadWitUS club content by membership, and
   enforces the spoiler-safe gate: a discussion post tied to milestone N is returned with its **body
   withheld** to members below N (the spoiler never crosses the wire), not merely CSS-blurred.
+- **Error monitoring** — `@sentry/nextjs` on all three runtimes (server, edge, browser), pointed at
+  **Better Stack** (it ingests the standard Sentry SDK, so the vendor is one env var). Guarded on the
+  DSN: with `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` unset the SDK never initialises and nothing is
+  sent. A `beforeSend` scrubber (`src/lib/sentry-scrub.ts`, tested in `tests/sentry-scrub.test.ts`)
+  strips emails, cookies, auth headers, JWTs, the TMDB `?api_key=`, Cloudinary signed-delivery URLs
+  and signed podcast media URLs before an event leaves the app, while keeping UUID resource URLs so a
+  report is still triageable.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
   fails the build if any API route imports the raw DB client; `scoped.db.test.ts` proves owner B
   cannot read/patch/delete owner A's data (runs once a Neon DB is configured).
@@ -54,7 +61,7 @@ accepted.
 | `pnpm build` | Production build (`--webpack`) |
 | `pnpm typecheck` | `next typegen && tsc --noEmit` |
 | `pnpm lint` | ESLint |
-| `pnpm test` | Vitest (isolation suite) |
+| `pnpm test` | Vitest (isolation suite + the error-report scrubber) |
 | `pnpm db:generate` | Generate a Drizzle migration from the schema |
 | `pnpm db:migrate` | Apply migrations to Neon (reads `.env.local`) |
 | `pnpm seed` | Seed dev data |
