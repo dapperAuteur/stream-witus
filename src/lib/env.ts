@@ -57,7 +57,7 @@ const schema = z.object({
   OUTBOX_INGEST_SECRET: z.string().optional(),
   OUTBOX_TRIGGER_ENABLED: z.string().optional(),
 
-  // Error monitoring — Better Stack, which ingests the standard Sentry SDK payloads (so the DSN is
+  // Error monitoring: Better Stack, which ingests the standard Sentry SDK payloads (so the DSN is
   // the only thing that decides the vendor). Every runtime init is guarded on the DSN, so with these
   // unset the SDK is inert and nothing is sent. See plans/user-tasks/19-betterstack-error-monitoring-dsn.md.
   // The configs read process.env directly (they run on edge + in the browser, where this module's

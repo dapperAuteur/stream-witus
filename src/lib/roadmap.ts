@@ -19,12 +19,12 @@ export const ROADMAP_MD = `# Stream.WitUS roadmap
   \`/feed/podcast/<slug>/rss.xml\` (audio enclosures + channel config in admin). Feed generation done;
   the Apple/Spotify **cutover** is an operator step (task 16).
 
-- **Error monitoring wired** — \`@sentry/nextjs\` on server/edge/browser pointed at **Better Stack**,
+- **Error monitoring wired**: \`@sentry/nextjs\` on server/edge/browser pointed at **Better Stack**,
   with a \`beforeSend\` scrubber that strips emails, cookies, auth headers and signed URLs. Inert
   until its DSN is set (task 19), so this is "wired, DSN pending" rather than live.
 
 ## ⏳ Operator (no code left)
 - Run prod migrations; per-show outbox env + Disctopia re-import (WFC/AAMSAZ) — task 15.
 - Set each show's channel config, validate feeds, then coordinate the podcast cutover — task 16.
-- Set \`SENTRY_DSN\` / \`NEXT_PUBLIC_SENTRY_DSN\` to the Better Stack DSN — task 19.
+- Set \`SENTRY_DSN\` / \`NEXT_PUBLIC_SENTRY_DSN\` to the Better Stack DSN (task 19).
 `;

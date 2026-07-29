@@ -28,7 +28,7 @@ Open Library. `@/*` → `src/*`.
 - **Membership-scoped clubs** — `src/db/clubs.ts` scopes ReadWitUS club content by membership, and
   enforces the spoiler-safe gate: a discussion post tied to milestone N is returned with its **body
   withheld** to members below N (the spoiler never crosses the wire), not merely CSS-blurred.
-- **Error monitoring** — `@sentry/nextjs` on all three runtimes (server, edge, browser), pointed at
+- **Error monitoring** via `@sentry/nextjs` on all three runtimes (server, edge, browser), pointed at
   **Better Stack** (it ingests the standard Sentry SDK, so the vendor is one env var). Guarded on the
   DSN: with `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` unset the SDK never initialises and nothing is
   sent. A `beforeSend` scrubber (`src/lib/sentry-scrub.ts`, tested in `tests/sentry-scrub.test.ts`)
