@@ -35,7 +35,7 @@ Open Library. `@/*` → `src/*`.
   strips emails, cookies, auth headers, JWTs, the TMDB `?api_key=`, Cloudinary signed-delivery URLs
   and signed podcast media URLs before an event leaves the app, while keeping UUID resource URLs so a
   report is still triageable.
-- **Uptime probe** at `GET /api/health` (see below) — the one route that proves the database is
+- **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
   reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
   fails the build if any API route imports the raw DB client; `scoped.db.test.ts` proves owner B
@@ -113,10 +113,10 @@ a 4-second timeout past which a hung database counts as down.
 
 What it deliberately does **not** do:
 
-- **It calls no third-party API** — no metadata provider, no media/streaming host, no player embed.
+- **It calls no third-party API**: no metadata provider, no media/streaming host, no player embed.
   A vendor outage must not turn this app's uptime monitor red, and provider errors routinely carry
   API keys and signed media URLs.
-- **It reports nothing about internals** — not which providers are configured, not whether any key is
+- **It reports nothing about internals**: not which providers are configured, not whether any key is
   valid, not stream or feed state. The two response bodies above are fixed literals; the failure token
   names no dependency and no cause.
 - **It never echoes an error.** The failure path swallows the exception unread (driver errors can
