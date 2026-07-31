@@ -57,6 +57,16 @@ const schema = z.object({
   OUTBOX_INGEST_SECRET: z.string().optional(),
   OUTBOX_TRIGGER_ENABLED: z.string().optional(),
 
+  // Error monitoring: Better Stack, which ingests the standard Sentry SDK payloads (so the DSN is
+  // the only thing that decides the vendor). Every runtime init is guarded on the DSN, so with these
+  // unset the SDK is inert and nothing is sent. See plans/user-tasks/19-betterstack-error-monitoring-dsn.md.
+  // The configs read process.env directly (they run on edge + in the browser, where this module's
+  // server-side validation does not); these entries exist so the vars are documented and the admin
+  // health panel can show whether monitoring is configured.
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  SENTRY_ENVIRONMENT: z.string().optional(),
+
   // Ecosystem inbox (Phase 7) — contact + newsletter forms.
   INBOX_INGEST_URL: z.string().url().optional(),
   INBOX_SOURCE_SLUG: z.string().optional(),
@@ -130,3 +140,5 @@ export const hasCloudinary = Boolean(
   env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
 );
 export const outboxEnabled = env.OUTBOX_TRIGGER_ENABLED === "true";
+/** True once an error-monitoring DSN is set. Until then the Sentry/Better Stack SDK is inert. */
+export const hasErrorMonitoring = Boolean(env.SENTRY_DSN ?? env.NEXT_PUBLIC_SENTRY_DSN);

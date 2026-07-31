@@ -8,7 +8,7 @@ import { clubs } from "@/db/schema/club";
 import { mediaItems } from "@/db/schema/media";
 import { podcastEpisodes } from "@/db/schema/podcast";
 import { getFlag } from "./access";
-import { env, hasCloudinary, hasMailgun, hasTmdb } from "./env";
+import { env, hasCloudinary, hasErrorMonitoring, hasMailgun, hasTmdb } from "./env";
 
 // ── Integration / config health ──────────────────────────────────────────────
 export async function integrationHealth() {
@@ -19,6 +19,7 @@ export async function integrationHealth() {
     mailgun: hasMailgun,
     inbox: Boolean(env.INBOX_INGEST_URL && env.INBOX_SOURCE_SLUG && env.INBOX_INGEST_SECRET),
     outbox: Boolean(env.OUTBOX_INGEST_URL && env.OUTBOX_SOURCE_SLUG && env.OUTBOX_INGEST_SECRET),
+    errorMonitoring: hasErrorMonitoring,
     outboxFailures: fail?.v ?? 0,
   };
 }
