@@ -35,6 +35,8 @@ Open Library. `@/*` → `src/*`.
   strips emails, cookies, auth headers, JWTs, the TMDB `?api_key=`, Cloudinary signed-delivery URLs
   and signed podcast media URLs before an event leaves the app, while keeping UUID resource URLs so a
   report is still triageable.
+- **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
+  reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
   fails the build if any API route imports the raw DB client; `scoped.db.test.ts` proves owner B
   cannot read/patch/delete owner A's data (runs once a Neon DB is configured).
@@ -92,6 +94,34 @@ Public, logged-out surfaces (read path `src/db/public.ts`): `/episodes` + `/epis
 notes), `/clubs/[slug]` (club identity + reading list), `/shelf` (the owner's public media), the
 `/connect` + `/pitch` forms, RSS at `/feed/episodes.xml` + `/feed/shelf.xml`, plus `/sitemap.xml` and
 `/robots.txt`. Everything here surfaces only `visibility=public` (or approved) content.
+
+## Health check (point uptime monitors here, not at `/`)
+
+`GET /api/health` is public, unauthenticated and never cached (`force-dynamic`, `revalidate = 0`,
+`Cache-Control: no-store`). `HEAD /api/health` returns the same status with no body, for monitors
+that prefer it.
+
+| Result | Status | Body |
+|---|---|---|
+| Database reachable | `200` | `{"ok":true,"service":"stream-witus"}` |
+| Database unreachable, or slower than 4s | `503` | `{"ok":false,"error":"dependency_unavailable"}` |
+
+**Point Better Stack (and any other uptime monitor) at `/api/health`, not at `/`.** The homepage can
+return `200` from a cached or static render while Neon is down, so a green check on `/` can mean
+nothing. This route runs the cheapest possible liveness query (`select 1`, `src/db/health.ts`), with
+a 4-second timeout past which a hung database counts as down.
+
+What it deliberately does **not** do:
+
+- **It calls no third-party API**: no metadata provider, no media/streaming host, no player embed.
+  A vendor outage must not turn this app's uptime monitor red, and provider errors routinely carry
+  API keys and signed media URLs.
+- **It reports nothing about internals**: not which providers are configured, not whether any key is
+  valid, not stream or feed state. The two response bodies above are fixed literals; the failure token
+  names no dependency and no cause.
+- **It never echoes an error.** The failure path swallows the exception unread (driver errors can
+  embed the connection string) and logs a single constant string, `[health] dependency check failed`.
+  Diagnosis comes from Better Stack error monitoring, not from this public body.
 
 ## Project docs
 
