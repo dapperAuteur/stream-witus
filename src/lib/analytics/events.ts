@@ -37,7 +37,7 @@
  * early: once events have landed under both spellings, the shared project shows this
  * app as two apps and no back-fill cleanly merges them.
  */
-export const ANALYTICS_APP = "stream-witus";
+export const ANALYTICS_APP = "stream";
 
 /**
  * Events with identical names across every ecosystem app. Names are contractual.
