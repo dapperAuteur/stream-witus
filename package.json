@@ -21,6 +21,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@sentry/nextjs": "^10.69.0",
+    "@vercel/analytics": "^2.0.1",
     "better-auth": "^1.6.2",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
@@ -31,6 +32,7 @@
     "mailgun.js": "^12.7.1",
     "next": "16.2.3",
     "papaparse": "^5.5.3",
+    "posthog-js": "^1.418.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
