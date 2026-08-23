@@ -34,7 +34,12 @@ Open Library. `@/*` → `src/*`.
   sent. A `beforeSend` scrubber (`src/lib/sentry-scrub.ts`, tested in `tests/sentry-scrub.test.ts`)
   strips emails, cookies, auth headers, JWTs, the TMDB `?api_key=`, Cloudinary signed-delivery URLs
   and signed podcast media URLs before an event leaves the app, while keeping UUID resource URLs so a
-  report is still triageable.
+  report is still triageable. `src/app/global-error.tsx` is the last-resort boundary for a crash in
+  the root layout itself, which `error.tsx` cannot catch because the layout is the thing that broke;
+  it renders its own `<html>`/`<body>` with inline styles and imports nothing but the Sentry SDK.
+  There is **no Content-Security-Policy** in this repo, so no `connect-src` has to name the ingest
+  origin — if one is ever added it must list the DSN's origin, or the browser silently drops every
+  client-side report and the dashboard just looks quiet.
 - **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
   reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
