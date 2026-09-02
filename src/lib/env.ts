@@ -1,4 +1,15 @@
 import { z } from "zod";
+import { endSessionEndpointFromDiscovery, silentSsoEndpointFromDiscovery } from "./silent-sso";
+
+/**
+ * The ecosystem IdP's discovery document, used when WITUS_OIDC_DISCOVERY_URL is unset.
+ *
+ * ONE literal, imported by `auth.ts` and by the two endpoint derivations below. When this lived in
+ * two files they could silently disagree, and the silent check would then probe a different host
+ * than the one the click actually signs in against.
+ */
+export const WITUS_OIDC_DISCOVERY_FALLBACK =
+  "https://accounts.witus.online/api/idp/.well-known/openid-configuration";
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -142,3 +153,36 @@ export const hasCloudinary = Boolean(
 export const outboxEnabled = env.OUTBOX_TRIGGER_ENABLED === "true";
 /** True once an error-monitoring DSN is set. Until then the Sentry/Better Stack SDK is inert. */
 export const hasErrorMonitoring = Boolean(env.SENTRY_DSN ?? env.NEXT_PUBLIC_SENTRY_DSN);
+
+/** The discovery URL actually in force — the override if set, else the ecosystem default. */
+const witusDiscoveryUrl = env.WITUS_OIDC_DISCOVERY_URL ?? WITUS_OIDC_DISCOVERY_FALLBACK;
+
+/**
+ * Where /signin's silent "Continue as <name>" check asks the WitUS IdP who this browser is.
+ *
+ * `null` — the feature stays completely dark — unless the ecosystem OIDC client is actually
+ * provisioned, because an affordance the visitor cannot complete is worse than none. The URL is
+ * DERIVED from the discovery URL this app already points at, so nothing new about
+ * accounts.witus.online is asserted here (see src/lib/silent-sso.ts). Resolved on the SERVER and
+ * passed down as a prop: the button is a client component and must never read the raw env.
+ */
+export const witusSilentSsoEndpoint: string | null = hasWitusSso
+  ? silentSsoEndpointFromDiscovery(witusDiscoveryUrl)
+  : null;
+
+/**
+ * Where sign-out ends the SHARED WitUS session (BAM's decision, 2026-08-30: signing out of one
+ * WitUS app signs you out of all of them). Dark under the same condition as the probe — with no
+ * OIDC client there is no shared session to end, and sign-out stays purely local.
+ *
+ * `client_id` IS REQUIRED, not optional: Better Auth's endsession endpoint rejects a
+ * `post_logout_redirect_uri` with `invalid_request` unless the request carries a verifiable
+ * `id_token_hint` or an explicit `client_id`, and we have no id_token client-side. Baked in here so
+ * the client component is handed a finished URL rather than the env var.
+ */
+export const witusEndSessionEndpoint: string | null = (() => {
+  if (!hasWitusSso) return null;
+  const base = endSessionEndpointFromDiscovery(witusDiscoveryUrl);
+  if (!base) return null;
+  return `${base}?client_id=${encodeURIComponent(env.WITUS_OIDC_CLIENT_ID as string)}`;
+})();

@@ -5,7 +5,7 @@ import { magicLink } from "better-auth/plugins/magic-link";
 import { genericOAuth } from "better-auth/plugins";
 import { db, schema } from "@/db/client";
 import { isAllowedToSignIn } from "./access";
-import { env } from "./env";
+import { env, WITUS_OIDC_DISCOVERY_FALLBACK } from "./env";
 import { sendEmail } from "./mailer";
 
 function trustedOrigins(): string[] {
@@ -54,9 +54,10 @@ export const auth = betterAuth({
             config: [
               {
                 providerId: "witus",
-                discoveryUrl:
-                  env.WITUS_OIDC_DISCOVERY_URL ??
-                  "https://accounts.witus.online/api/idp/.well-known/openid-configuration",
+                // Same fallback constant the silent-check + global-sign-out endpoints derive from
+                // (src/lib/env.ts), so the probe can never point at a different host than the one
+                // the click actually signs in against.
+                discoveryUrl: env.WITUS_OIDC_DISCOVERY_URL ?? WITUS_OIDC_DISCOVERY_FALLBACK,
                 clientId: env.WITUS_OIDC_CLIENT_ID,
                 clientSecret: env.WITUS_OIDC_CLIENT_SECRET ?? "",
                 scopes: ["openid", "email", "profile"],
