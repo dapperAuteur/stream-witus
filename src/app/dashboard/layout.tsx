@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { witusEndSessionEndpoint } from "@/lib/env";
 import { getAdminUser, getSessionUserId } from "@/lib/session";
 import SignOutButton from "@/components/SignOutButton";
 
@@ -32,7 +33,9 @@ export default async function DashboardLayout({
               </Link>
             )}
           </nav>
-          <SignOutButton />
+          {/* Global sign-out: resolved on the server, null unless this app is a configured
+              WitUS OIDC client, in which case sign-out stays purely local. */}
+          <SignOutButton endSessionUrl={witusEndSessionEndpoint} />
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
