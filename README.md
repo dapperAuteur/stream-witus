@@ -34,12 +34,18 @@ Open Library. `@/*` → `src/*`.
   sent. A `beforeSend` scrubber (`src/lib/sentry-scrub.ts`, tested in `tests/sentry-scrub.test.ts`)
   strips emails, cookies, auth headers, JWTs, the TMDB `?api_key=`, Cloudinary signed-delivery URLs
   and signed podcast media URLs before an event leaves the app, while keeping UUID resource URLs so a
-  report is still triageable. `src/app/global-error.tsx` is the last-resort boundary for a crash in
-  the root layout itself, which `error.tsx` cannot catch because the layout is the thing that broke;
-  it renders its own `<html>`/`<body>` with inline styles and imports nothing but the Sentry SDK.
-  There is **no Content-Security-Policy** in this repo, so no `connect-src` has to name the ingest
-  origin — if one is ever added it must list the DSN's origin, or the browser silently drops every
-  client-side report and the dashboard just looks quiet.
+  report is still triageable.
+- **Ecosystem SSO** — "Sign in with WitUS" (Better Auth `genericOAuth`, providerId `witus`,
+  against the `accounts.witus.online` IdP), plus two behaviours layered on it. **"Continue as
+  <name>"**: `/signin` renders the magic-link form immediately and, in parallel, asks the IdP's
+  `/api/ecosystem/session` (CORS, credentialed, 4s timeout) whether this browser already has a WitUS
+  session; if it answers, the button relabels itself. A blocked, failed, or timed-out probe is
+  completely invisible — the name is display copy, never a credential, and identity is established
+  only by the OIDC code flow the click starts. A one-shot marker (`sessionStorage` +
+  `?sso=tried`, set BEFORE the redirect) stops the stale-session redirect loop. **Global sign-out**:
+  sign-out destroys the local session FIRST, then hands off to the IdP's `end_session` endpoint, so
+  an unreachable IdP still leaves you signed out here. Both are dark unless `WITUS_OIDC_CLIENT_ID` is
+  set. Design + reasoning: `src/lib/silent-sso.ts`; pinned in `tests/silent-sso.test.ts`.
 - **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
   reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
@@ -76,7 +82,9 @@ accepted.
 ## Using the app (Phase 3)
 
 Sign in at `/signin` (magic link — until Mailgun is configured, the link is printed to the dev server
-console). After sign-in you land on `/dashboard/media`: add/edit/list/detail media items, write notes
+console), or with "Sign in with WitUS" once the OIDC client is provisioned. If you already have a
+WitUS session in that browser the button reads "Continue as <name>"; signing out signs you out of
+every WitUS app. After sign-in you land on `/dashboard/media`: add/edit/list/detail media items, write notes
 (incl. spoilers, with optional audio), link adaptations/relationships, manage creators & platforms
 (`/dashboard/media/settings`), plan podcast episodes and link discussed titles
 (`/dashboard/media/podcasts`), **Find** a title via Open Library / TMDB to auto-fill details,

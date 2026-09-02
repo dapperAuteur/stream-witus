@@ -6,7 +6,14 @@ import { WitusSsoButton } from '@/components/witus-sso-button';
 
 type Status = 'idle' | 'checking' | 'sent' | 'waitlisted' | 'error';
 
-export function SignInForm({ witusSsoEnabled }: { witusSsoEnabled: boolean }) {
+export function SignInForm({
+  witusSsoEnabled,
+  witusSilentCheckUrl,
+}: {
+  witusSsoEnabled: boolean;
+  /** Server-resolved IdP session endpoint for the silent "Continue as <name>" check. */
+  witusSilentCheckUrl: string | null;
+}) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
@@ -94,7 +101,7 @@ export function SignInForm({ witusSsoEnabled }: { witusSsoEnabled: boolean }) {
       {witusSsoEnabled ? (
         <div className="space-y-3">
           <p className="text-center text-xs uppercase tracking-wide text-neutral-500">or</p>
-          <WitusSsoButton />
+          <WitusSsoButton enabled={witusSsoEnabled} silentCheckUrl={witusSilentCheckUrl} />
         </div>
       ) : null}
     </>
