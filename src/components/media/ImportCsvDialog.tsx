@@ -100,9 +100,9 @@ export default function ImportCsvDialog({ isOpen, onClose, onImported }: ImportC
     <Modal isOpen={isOpen} onClose={handleClose} title="Import from CSV">
       <div className="p-6 space-y-4">
         <p className="text-sm text-gray-600">
-          Bring in a media list exported from CentenarianOS (Media Tracker, Export) or from
-          Stream.WitUS. Items you already have with the same title, type and year are skipped,
-          so importing the same file twice is safe.
+          Bring in the file from CentenarianOS&apos;s &ldquo;Export my media (CSV)&rdquo; button, or a
+          Stream.WitUS export. Items you already have with the same title, type and year are
+          skipped, so importing the same file twice is safe.
         </p>
 
         <div>

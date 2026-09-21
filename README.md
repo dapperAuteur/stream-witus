@@ -74,7 +74,7 @@ accepted.
 | `pnpm build` | Production build (`--webpack`) |
 | `pnpm typecheck` | `next typegen && tsc --noEmit` |
 | `pnpm lint` | ESLint |
-| `pnpm test` | Vitest (isolation suite + the error-report scrubber) |
+| `pnpm test` | Vitest (isolation suite, the error-report scrubber, CSV import parser + duplicate rule) |
 | `pnpm db:generate` | Generate a Drizzle migration from the schema |
 | `pnpm db:migrate` | Apply migrations to Neon (reads `.env.local`) |
 | `pnpm seed` | Seed dev data |
@@ -88,7 +88,29 @@ every WitUS app. After sign-in you land on `/dashboard/media`: add/edit/list/det
 (incl. spoilers, with optional audio), link adaptations/relationships, manage creators & platforms
 (`/dashboard/media/settings`), plan podcast episodes and link discussed titles
 (`/dashboard/media/podcasts`), **Find** a title via Open Library / TMDB to auto-fill details,
-import from a URL, and export CSV. Every `/dashboard` route is owner-gated (redirects to `/signin`).
+import from a URL, **import a CSV**, and export CSV. Every `/dashboard` route is owner-gated
+(redirects to `/signin`).
+
+### Moving your media list from CentenarianOS (CSV import)
+
+1. In CentenarianOS, open `/dashboard/media` and choose **Export my media (CSV)** in the "Media is
+   moving to Stream.WitUS" banner (it downloads `centenarianos-media-export.csv`).
+2. In Stream.WitUS, open `/dashboard/media`, choose **Import CSV**, pick the file, and select
+   **Import**.
+3. The dialog reports how many items were **imported**, **skipped as duplicates**, and **rejected**,
+   and lists each rejected row with its row number and the reason (for example a missing title, an
+   unknown `media_type`, or a date that is not `YYYY-MM-DD`). Fix those rows and import the file
+   again.
+
+Importing the same file twice is safe. A row is skipped as a duplicate when you already have an item
+with the same title (trimmed, case-insensitive), media type and release year, or when it repeats an
+earlier row in the same file. Deleted items do not count, so re-importing brings them back. Up to 500
+rows per file; the header row needs at least `title` and `media_type`.
+
+The importer reads Stream.WitUS's own export and CentenarianOS exports or import templates, including
+CentOS's `season_number` / `episode_number` (stored as the item's season and episode) and its
+`favorite` column. Columns it does not know are ignored. Categories do not carry over (CentOS exports
+no category column).
 
 ## API surface
 
@@ -96,7 +118,7 @@ Ported from CentenarianOS, rewritten Supabase → Drizzle through `ScopedDb`, au
 Auth, with the CentOS request/response contract preserved so the UI ports unchanged:
 `media` (list/create) · `media/[id]` · `media/[id]/notes[/{noteId}]` · `media/[id]/relationships` ·
 `media/categories[/{id}]` · `media/creators[/{id}]` · `media/platforms[/{id}]` · `media/export` ·
-`media/import` · `media/import-url` · `media/lookup` (Open Library / TMDB auto-metadata) ·
+`media/import` (CSV; skips duplicates, returns `{ inserted, duplicates[], rejected[] }`) · `media/import-url` · `media/lookup` (Open Library / TMDB auto-metadata) ·
 `media/summary` · `podcasts` (list/create) · `podcasts/[id]` (get/patch/delete) ·
 `podcasts/[id]/media` (link / update-timestamp / unlink).
 
