@@ -19,6 +19,10 @@ export const ROADMAP_MD = `# Stream.WitUS roadmap
   \`/feed/podcast/<slug>/rss.xml\` (audio enclosures + channel config in admin). Feed generation done;
   the Apple/Spotify **cutover** is an operator step (task 16).
 
+- **CSV import screen** on \`/dashboard/media\` for moving a media list over from CentenarianOS:
+  reports imported / skipped-as-duplicate / rejected rows (with reasons), safe to run twice, and
+  maps CentOS season/episode.
+
 - **Error monitoring wired**: \`@sentry/nextjs\` on server/edge/browser pointed at **Better Stack**,
   with a \`beforeSend\` scrubber that strips emails, cookies, auth headers and signed URLs. Inert
   until its DSN is set (task 19), so this is "wired, DSN pending" rather than live.

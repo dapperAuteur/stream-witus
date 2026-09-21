@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getSessionUserId } from "@/lib/session";
 import { db as defaultDb } from "./client";
 import {
@@ -510,6 +510,29 @@ export class ScopedDb {
     const values = rows.map((r) => ({ ...r, userId: this.userId }));
     const inserted = await this.db.insert(mediaItems).values(values).returning({ id: mediaItems.id });
     return { inserted: inserted.length };
+  }
+
+  /**
+   * Title, type and year of the owner's active items of the given types: the fields the
+   * CSV import duplicate check compares (see mediaDedupeKey in lib/csv). Soft-deleted
+   * items are left out, so re-importing something you deleted brings it back.
+   */
+  async listMediaIdentities(mediaTypes: Array<(typeof MEDIA_TYPES)[number]>) {
+    if (mediaTypes.length === 0) return [];
+    return this.db
+      .select({
+        title: mediaItems.title,
+        mediaType: mediaItems.mediaType,
+        yearReleased: mediaItems.yearReleased,
+      })
+      .from(mediaItems)
+      .where(
+        and(
+          eq(mediaItems.userId, this.userId),
+          eq(mediaItems.isActive, true),
+          inArray(mediaItems.mediaType, mediaTypes),
+        ),
+      );
   }
 
   exportMediaItems() {
