@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Star, BookOpen, Tv, Film, Music, Download, Globe, Search, Settings } from 'lucide-react';
+import { Plus, Star, BookOpen, Tv, Film, Music, Download, Globe, Search, Settings, FileUp } from 'lucide-react';
 import { offlineFetch } from '@/lib/offline/offline-fetch';
 import MediaCard, { type MediaItem } from '@/components/media/MediaCard';
 import MediaForm, { type MediaPrefill } from '@/components/media/MediaForm';
 import ImportUrlDialog from '@/components/media/ImportUrlDialog';
+import ImportCsvDialog from '@/components/media/ImportCsvDialog';
 import MetadataSearchDialog from '@/components/media/MetadataSearchDialog';
 import Link from 'next/link';
 
@@ -51,6 +52,7 @@ export default function MediaHubPage() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MediaItem | null>(null);
   const [showImportUrl, setShowImportUrl] = useState(false);
+  const [showImportCsv, setShowImportCsv] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [prefill, setPrefill] = useState<MediaPrefill | null>(null);
   const [total, setTotal] = useState(0);
@@ -138,6 +140,12 @@ export default function MediaHubPage() {
             className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5">
             <Download className="w-4 h-4" /> Export
           </a>
+          <button
+            onClick={() => setShowImportCsv(true)}
+            className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5"
+          >
+            <FileUp className="w-4 h-4" aria-hidden="true" /> Import CSV
+          </button>
           <button
             onClick={() => setShowSearch(true)}
             className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition min-h-11 flex items-center gap-1.5"
@@ -228,10 +236,18 @@ export default function MediaHubPage() {
       ) : items.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-gray-400 text-sm">No media items found.</p>
-          <button onClick={() => setShowForm(true)}
-            className="mt-3 text-sm text-fuchsia-600 hover:underline">
-            Add your first item
-          </button>
+          <div className="mt-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4">
+            <button onClick={() => setShowForm(true)}
+              className="text-sm text-fuchsia-600 hover:underline min-h-11">
+              Add your first item
+            </button>
+            {!typeFilter && !statusFilter && !debouncedSearch.trim() && (
+              <button onClick={() => setShowImportCsv(true)}
+                className="text-sm text-fuchsia-600 hover:underline min-h-11">
+                Import a CSV from CentenarianOS
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -282,6 +298,13 @@ export default function MediaHubPage() {
           setShowImportUrl(false);
           setShowForm(true);
         }}
+      />
+
+      {/* Import from CSV (CentenarianOS or Stream.WitUS export) */}
+      <ImportCsvDialog
+        isOpen={showImportCsv}
+        onClose={() => setShowImportCsv(false)}
+        onImported={load}
       />
 
       {/* Auto-metadata search (Open Library / TMDB) */}
