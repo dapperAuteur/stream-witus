@@ -48,7 +48,7 @@ drizzle-kit · Better Auth 1.6.2 (magic-link) · Zod 4 · Vitest · `tsx` script
 
 ---
 
-<!-- BEGIN:witus-shared-rules v7 -->
+<!-- BEGIN:witus-shared-rules v8 -->
 <!-- MANAGED BLOCK — do not edit by hand. Source: gemini/witus/docs/shared-rules.md.
      Update the source, then run `node scripts/sync-claude-rules.mjs` in the witus repo. -->
 
@@ -190,6 +190,15 @@ Every repo deployed on Vercel with a Neon database through the Vercel-managed in
 
 **Claude's part:** when a session adds a Neon database to a repo, it adds the workflow in the same change and files the variable/secret step as an operator task. When a session sees preview branches older than the PR that made them (`npx neonctl branches list --project-id <id>`), it lists them for BAM instead of assuming the integration cleaned up. Source for the Neon behavior: https://neon.com/docs/guides/vercel-branch-cleanup (read 2026-10-15).
 
+## Email rule — Mailgun is the ecosystem mailer, never Resend
+
+Every app that sends email uses **Mailgun** (env `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`; witus-inbox is the
+reference). Never add Resend as a dependency, and never name it in a PRD, brief, README, CLAUDE.md or cloud
+prompt. When a doc in front of you says Resend, fix it in the same change. Two apps still send through Resend
+(flashlearn-ai and centenarian-os, 2026-10-23): move them to Mailgun the next time a session touches their email
+code. **Why:** Create.WitUS's PRD, CLAUDE.md and README kept specifying Resend after Mailgun was chosen, so the
+wrong mailer resurfaced in later sessions (BAM, 2026-10-23: "ensure we don't have this error again").
+
 ## Coding conventions
 
 UI/UX/DX conventions (a11y, component patterns, TypeScript, microcopy, git-commit vocabulary, the
@@ -197,4 +206,4 @@ default Neon+Drizzle+pnpm+Vitest stack) are consolidated in `gemini/witus/docs/s
 Read it before writing UI or API code. Two repos are grandfathered on Supabase+Jest and documented
 there as exceptions.
 
-<!-- END:witus-shared-rules v7 -->
+<!-- END:witus-shared-rules v8 -->
