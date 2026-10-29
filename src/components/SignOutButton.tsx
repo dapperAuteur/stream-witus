@@ -1,23 +1,27 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useId, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { signOut } from '@/lib/auth-client';
+import {
+  SIGN_OUT_EVERYWHERE_HELP,
+  SIGN_OUT_EVERYWHERE_LABEL,
+  SIGN_OUT_LABEL,
+  SIGN_OUT_PENDING_LABEL,
+  signOutEverywhere,
+  signOutHere,
+} from '@/lib/sign-out';
 
 /**
- * Sign out — locally always, and from the whole ecosystem when this app is a configured WitUS OIDC
- * client (BAM's decision, 2026-08-30: "signout signs out of every app").
- *
- * `endSessionUrl` is resolved on the SERVER (`witusEndSessionEndpoint` in src/lib/env.ts, which
- * already carries the required `client_id`) and passed in by the dashboard layout. It is null when
- * WITUS_OIDC_CLIENT_ID is unset, and sign-out then behaves exactly as it did before.
+ * "Sign out": ends ONLY the Stream.WitUS session, then /signin (BAM, 2026-10-29, witus task 128
+ * option (b)). It never navigates to the IdP, so the WitUS session and other WitUS apps stay
+ * signed in. Its label is always "Sign out" (shared UI rule: the header sign-in/out control is
+ * never renamed). Ending the WitUS session is `SignOutEverywhereButton`'s job.
  */
-export default function SignOutButton({ endSessionUrl = null }: { endSessionUrl?: string | null } = {}) {
+export default function SignOutButton() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-
-  const label = pending ? 'Signing out…' : endSessionUrl ? 'Sign out of WitUS' : 'Sign out';
 
   return (
     <button
@@ -25,33 +29,53 @@ export default function SignOutButton({ endSessionUrl = null }: { endSessionUrl?
       disabled={pending}
       onClick={() =>
         startTransition(async () => {
-          // ORDER IS THE SAFETY PROPERTY. Destroy the LOCAL session first, then hand off. If the
-          // IdP is unreachable or refuses the logout, the person is still signed out HERE. Handing
-          // off first would turn any IdP failure into "I clicked sign out and I'm still signed in".
-          await signOut();
-
-          if (endSessionUrl) {
-            // The trailing slash is REQUIRED. Better Auth exact-matches post_logout_redirect_uri
-            // against this client's registered redirectUrls, and the IdP registry
-            // (gemini/witus lib/identity/clients.ts) registers `origin + "/"` — for this app,
-            // `https://stream.witus.online/`. Drop the slash and the IdP returns invalid_request.
-            // On an unregistered host (a Vercel preview URL) the IdP refuses the return trip and
-            // keeps the visitor on its own page; they are signed out of both places either way.
-            const back = `${window.location.origin}/`;
-            // A full navigation, not router.push: this leaves our origin for the IdP.
-            // `&`, not `?`: endSessionUrl already carries client_id (see src/lib/env.ts).
-            window.location.assign(
-              `${endSessionUrl}&post_logout_redirect_uri=${encodeURIComponent(back)}`,
-            );
-            return;
-          }
-
-          router.push('/signin');
+          await signOutHere({ signOut: () => signOut(), goLocal: (path) => router.push(path) });
         })
       }
       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition disabled:opacity-50"
     >
-      <LogOut className="w-4 h-4" aria-hidden="true" /> {label}
+      <LogOut className="w-4 h-4" aria-hidden="true" /> {pending ? SIGN_OUT_PENDING_LABEL : SIGN_OUT_LABEL}
     </button>
+  );
+}
+
+/**
+ * "Sign out of WitUS everywhere": ends the Stream.WitUS session, THEN ends the WitUS session at
+ * the IdP (order in `signOutEverywhere`, src/lib/sign-out.ts). Other WitUS apps stay signed in
+ * until you sign out of them; the help text says so.
+ *
+ * `endSessionUrl` is resolved on the SERVER (`witusEndSessionEndpoint` in src/lib/env.ts, which
+ * already carries the required `client_id`) and passed in by the dashboard layout. It is null when
+ * WITUS_OIDC_CLIENT_ID is unset, and then nothing renders.
+ */
+export function SignOutEverywhereButton({ endSessionUrl }: { endSessionUrl: string | null }) {
+  const helpId = useId();
+  const [pending, startTransition] = useTransition();
+  if (!endSessionUrl) return null;
+
+  return (
+    <div className="flex max-w-xs flex-col items-end gap-0.5">
+      <button
+        type="button"
+        disabled={pending}
+        aria-describedby={helpId}
+        onClick={() =>
+          startTransition(async () => {
+            await signOutEverywhere({
+              signOut: () => signOut(),
+              navigate: (url) => window.location.assign(url),
+              endSessionUrl,
+              origin: window.location.origin,
+            });
+          })
+        }
+        className="text-xs text-gray-500 underline underline-offset-4 hover:text-gray-800 transition disabled:opacity-50"
+      >
+        {pending ? SIGN_OUT_PENDING_LABEL : SIGN_OUT_EVERYWHERE_LABEL}
+      </button>
+      <p id={helpId} className="text-right text-xs text-gray-500">
+        {SIGN_OUT_EVERYWHERE_HELP}
+      </p>
+    </div>
   );
 }

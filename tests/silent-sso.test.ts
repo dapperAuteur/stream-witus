@@ -16,13 +16,14 @@ import {
 } from "@/lib/silent-sso";
 
 /**
- * The silent ecosystem-SSO check ("Continue as <name>") and global sign-out.
+ * The silent ecosystem-SSO check ("Continue as <name>") and the end-session URL handed to
+ * "Sign out of WitUS everywhere". Sign-out behaviour itself is pinned in tests/sign-out.test.ts.
  *
  * Pinned in order of what each would cost if it broke:
  *   1. THE REDIRECT LOOP. probe → "Continue as X" → click → IdP declines → back to /signin → probe.
  *      It never appears in normal use, so it is simulated end to end below.
  *   2. SIGN-OUT ORDERING. The local session must die BEFORE the hand-off to the IdP, or an
- *      unreachable IdP means "I clicked sign out and I'm still signed in".
+ *      unreachable IdP means "I clicked sign out and I'm still signed in" (tests/sign-out.test.ts).
  *   3. INVISIBLE FAILURE. Nothing the probe can return may produce an error, a stuck spinner, or a
  *      claim about who the visitor is — and the name it returns must never be treated as identity.
  *   4. THE GATE. Neither feature may do anything when this app is not a configured OIDC client.
@@ -360,44 +361,17 @@ describe("a failed check is invisible", () => {
   });
 });
 
-describe("global sign-out", () => {
-  const button = read("src/components/SignOutButton.tsx");
-
-  it("destroys the local session BEFORE handing off to the IdP", () => {
-    // THE SAFETY PROPERTY. If the IdP is unreachable or refuses, the person is still signed out
-    // here. Reversing these two lines turns any IdP failure into "I clicked sign out and I'm still
-    // signed in" — which is why the order is pinned rather than left to review.
-    const local = button.indexOf("await signOut();");
-    const handoff = button.indexOf("window.location.assign(");
-    expect(local).toBeGreaterThan(-1);
-    expect(handoff).toBeGreaterThan(-1);
-    expect(local).toBeLessThan(handoff);
-  });
-
-  it("sends post_logout_redirect_uri with the trailing slash the IdP registered", () => {
-    // Better Auth exact-matches this against the client's registered redirectUrls, and the registry
-    // (gemini/witus lib/identity/clients.ts) registers `origin + "/"`. Drop the slash → 400.
-    expect(button).toContain("const back = `${window.location.origin}/`;");
-    expect(button).toContain("&post_logout_redirect_uri=${encodeURIComponent(back)}");
-    // A full navigation, not a router push: this leaves our origin.
-    expect(stripComments(button)).not.toContain("router.push('/')");
-  });
-
-  it("stays local, and says so, when this app is not a configured OIDC client", () => {
-    expect(button).toContain("endSessionUrl = null");
-    expect(button).toContain("if (endSessionUrl) {");
-    expect(button).toContain("router.push('/signin');");
-    expect(button).toContain(
-      "const label = pending ? 'Signing out…' : endSessionUrl ? 'Sign out of WitUS' : 'Sign out';",
-    );
-  });
-
-  it("is handed the URL by the server, never built in the browser", () => {
-    const code = stripComments(button);
+describe("the end-session URL is handed over by the server", () => {
+  it("is never built in the browser", () => {
+    const code = stripComments(read("src/components/SignOutButton.tsx"));
     expect(code).not.toContain("https://");
     expect(code).not.toContain("witus.online");
     expect(read("src/app/dashboard/layout.tsx")).toContain(
-      "<SignOutButton endSessionUrl={witusEndSessionEndpoint} />",
+      "<SignOutEverywhereButton endSessionUrl={witusEndSessionEndpoint} />",
     );
+  });
+
+  it("gives plain Sign out no IdP URL at all", () => {
+    expect(read("src/app/dashboard/layout.tsx")).toContain("<SignOutButton />");
   });
 });

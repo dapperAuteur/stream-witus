@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { witusEndSessionEndpoint } from "@/lib/env";
 import { getAdminUser, getSessionUserId } from "@/lib/session";
-import SignOutButton from "@/components/SignOutButton";
+import SignOutButton, { SignOutEverywhereButton } from "@/components/SignOutButton";
 
 // Auth gate: every /dashboard route requires a session. Unauthenticated → /signin.
 // (Per-route data is still owner-scoped via ScopedDb; this is the UX gate.)
@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <nav className="flex items-center gap-4">
             <Link href="/dashboard/media" className="text-sm font-bold text-gray-900">
               Stream.WitUS
@@ -33,9 +33,13 @@ export default async function DashboardLayout({
               </Link>
             )}
           </nav>
-          {/* Global sign-out: resolved on the server, null unless this app is a configured
-              WitUS OIDC client, in which case sign-out stays purely local. */}
-          <SignOutButton endSessionUrl={witusEndSessionEndpoint} />
+          <div className="flex items-start gap-4">
+            {/* "Sign out" leaves only Stream.WitUS (BAM, 2026-10-29, witus task 128 option (b)). */}
+            <SignOutButton />
+            {/* Resolved on the server; null unless this app is a configured WitUS OIDC client,
+                and then the "everywhere" control does not render. */}
+            <SignOutEverywhereButton endSessionUrl={witusEndSessionEndpoint} />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>

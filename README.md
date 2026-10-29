@@ -42,10 +42,13 @@ Open Library. `@/*` → `src/*`.
   session; if it answers, the button relabels itself. A blocked, failed, or timed-out probe is
   completely invisible — the name is display copy, never a credential, and identity is established
   only by the OIDC code flow the click starts. A one-shot marker (`sessionStorage` +
-  `?sso=tried`, set BEFORE the redirect) stops the stale-session redirect loop. **Global sign-out**:
-  sign-out destroys the local session FIRST, then hands off to the IdP's `end_session` endpoint, so
-  an unreachable IdP still leaves you signed out here. Both are dark unless `WITUS_OIDC_CLIENT_ID` is
-  set. Design + reasoning: `src/lib/silent-sso.ts`; pinned in `tests/silent-sso.test.ts`.
+  `?sso=tried`, set BEFORE the redirect) stops the stale-session redirect loop. **Sign out vs.
+  sign out of WitUS everywhere** (BAM, 2026-10-29): **Sign out** ends only the Stream.WitUS session
+  and goes to `/signin`; the WitUS session and other WitUS apps stay signed in. **Sign out of WitUS
+  everywhere** destroys the local session FIRST, then hands off to the IdP's `end_session` endpoint,
+  so an unreachable IdP still leaves you signed out here; other WitUS apps stay signed in until you
+  sign out of them (the help text next to it says so). "Continue as" and the "everywhere" control
+  are dark unless `WITUS_OIDC_CLIENT_ID` is set; plain Sign out always shows. Design + reasoning: `src/lib/silent-sso.ts` and `src/lib/sign-out.ts`; pinned in `tests/silent-sso.test.ts` and `tests/sign-out.test.ts`.
 - **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
   reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`

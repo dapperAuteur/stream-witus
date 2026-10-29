@@ -54,7 +54,7 @@ export const auth = betterAuth({
             config: [
               {
                 providerId: "witus",
-                // Same fallback constant the silent-check + global-sign-out endpoints derive from
+                // Same fallback constant the silent-check + sign-out-everywhere endpoints derive from
                 // (src/lib/env.ts), so the probe can never point at a different host than the one
                 // the click actually signs in against.
                 discoveryUrl: env.WITUS_OIDC_DISCOVERY_URL ?? WITUS_OIDC_DISCOVERY_FALLBACK,

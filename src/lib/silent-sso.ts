@@ -1,6 +1,6 @@
 /**
  * "Continue as <name>" — the silent ecosystem-SSO check, plus the derivation of the two IdP
- * endpoints it and global sign-out need.
+ * endpoints it and "Sign out of WitUS everywhere" need.
  *
  * BAM's complaint: /signin makes you type an email even when another tab already has you signed in
  * to a WitUS app. The fix (BAM's OPTION B, 2026-08-30) is deliberately NOT automatic: render the
@@ -150,9 +150,10 @@ function splitDiscoveryUrl(
  * The IdP's RP-initiated logout endpoint: `<basePath>/oauth2/endsession` — the `end_session_endpoint`
  * the live discovery document advertises.
  *
- * BAM chose GLOBAL sign-out on 2026-08-30: "signout signs out of every app". Ending only the local
- * session leaves the IdP session alive, and with "Continue as <name>" live that means signing out
- * and coming back offers to sign you straight back in, which reads as a broken logout.
+ * Used only by "Sign out of WitUS everywhere". Plain "Sign out" ends just the local session and
+ * leaves the IdP session alive (BAM, 2026-10-29, witus task 128 option (b)), so coming back to
+ * /signin may offer "Continue as <name>"; that is expected. The everywhere control ends the IdP
+ * session too. See src/lib/sign-out.ts.
  */
 export function endSessionEndpointFromDiscovery(
   discoveryUrl: string | null | undefined,
