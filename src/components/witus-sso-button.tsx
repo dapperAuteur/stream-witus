@@ -100,8 +100,8 @@ export function WitusSsoButton({
     // tab; the second render offers the plain button and the email form, which always work.
     writeAttempted();
     void authClient.signIn
-      .oauth2({
-        providerId: 'witus',
+      .social({
+        provider: 'witus',
         callbackURL: CALLBACK_PATH,
         // Belt and braces with the callback interception in src/app/api/auth/[...all]/route.ts.
         // Better Auth only reads errorCallbackURL for failures AFTER it parses the OAuth state, so

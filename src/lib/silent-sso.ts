@@ -226,7 +226,9 @@ export function continueAsLabel(identity: SsoIdentity | null): string {
  * browser where sessionStorage throws or is empty.
  */
 export function silentSsoRecoveryPath(url: URL, signInPath = "/signin"): string | null {
-  if (!/\/oauth2\/callback\/witus\/?$/.test(url.pathname)) return null;
+  // better-auth 1.7 serves the callback at /api/auth/callback/witus (1.6, and the IdP-registered
+  // redirect URI, use /api/auth/oauth2/callback/witus); the pattern matches both.
+  if (!/\/callback\/witus\/?$/.test(url.pathname)) return null;
   if (!isSilentAuthFailure(url.searchParams.get("error"))) return null;
   return withAttemptMarker(signInPath);
 }
