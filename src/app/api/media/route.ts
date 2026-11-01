@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb, type MediaItemInput } from "@/db/scoped";
 import { badRequest, toStringArray, unauthorized } from "@/lib/api";
+import { toApiMediaItem } from "@/lib/media-api";
 
 export async function GET(request: NextRequest) {
   const sdb = await getScopedDb();
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     limit: Number(sp.get("limit")) || 50,
     offset: Number(sp.get("offset")) || 0,
   });
-  return NextResponse.json({ items, total });
+  return NextResponse.json({ items: items.map(toApiMediaItem), total });
 }
 
 export async function POST(request: NextRequest) {
@@ -57,5 +58,5 @@ export async function POST(request: NextRequest) {
   };
 
   const item = await sdb.createMediaItem(input);
-  return NextResponse.json({ item }, { status: 201 });
+  return NextResponse.json({ item: toApiMediaItem(item) }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { toApiEpisode } from "@/lib/media-api";
 import { fireEpisodePublished } from "@/lib/outbox-trigger";
 
 type Params = { params: Promise<{ id: string }> };
@@ -11,7 +12,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const episode = await sdb.getEpisode(id);
   if (!episode) return notFound();
-  return NextResponse.json({ episode });
+  return NextResponse.json({ episode: toApiEpisode(episode) });
 }
 
 const FIELD_MAP: Record<string, string> = {
@@ -50,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     fireEpisodePublished(sdb.userId, episode);
   }
 
-  return NextResponse.json({ episode });
+  return NextResponse.json({ episode: toApiEpisode(episode) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {

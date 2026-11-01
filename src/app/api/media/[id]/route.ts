@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb, type MediaItemInput } from "@/db/scoped";
 import { badRequest, notFound, toStringArray, unauthorized } from "@/lib/api";
+import { toApiMediaItem } from "@/lib/media-api";
 import { fireMediaFinished } from "@/lib/outbox-trigger";
 
 type Params = { params: Promise<{ id: string }> };
@@ -11,7 +12,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const item = await sdb.getMediaItem(id);
   if (!item) return notFound();
-  return NextResponse.json({ item });
+  return NextResponse.json({ item: toApiMediaItem(item) });
 }
 
 // Fields a client may set, mapped snake_case → the ScopedDb input shape.
@@ -67,7 +68,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     fireMediaFinished(sdb.userId, item);
   }
 
-  return NextResponse.json({ item });
+  return NextResponse.json({ item: toApiMediaItem(item) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {

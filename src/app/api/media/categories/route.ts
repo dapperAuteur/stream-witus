@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, unauthorized } from "@/lib/api";
+import { toApiMediaCategory } from "@/lib/media-api";
 
 export async function GET() {
   const sdb = await getScopedDb();
   if (!sdb) return unauthorized();
   // Auto-seeds the six default categories on first read (CentOS parity).
   const categories = await sdb.listCategories();
-  return NextResponse.json({ categories });
+  return NextResponse.json({ categories: categories.map(toApiMediaCategory) });
 }
 
 export async function POST(request: NextRequest) {
@@ -21,5 +22,5 @@ export async function POST(request: NextRequest) {
     color: body.color ?? undefined,
     sortOrder: body.sort_order ?? undefined,
   });
-  return NextResponse.json({ category }, { status: 201 });
+  return NextResponse.json({ category: toApiMediaCategory(category) }, { status: 201 });
 }

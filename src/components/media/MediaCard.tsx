@@ -1,34 +1,10 @@
 'use client';
 
 import { Star, Edit3, Trash2 } from 'lucide-react';
+import { type ApiMediaItem, mediaTypeLabel } from '@/lib/media-api';
 
-export interface MediaItem {
-  id: string;
-  title: string;
-  creator: string | null;
-  media_type: string;
-  status: string;
-  rating: number | null;
-  start_date: string | null;
-  end_date: string | null;
-  cover_image_url: string | null;
-  external_url?: string | null;
-  genre: string[];
-  tags: string[];
-  current_progress: string | null;
-  total_length: string | null;
-  season_number: number | null;
-  episode_number: number | null;
-  total_seasons?: number | null;
-  total_episodes?: number | null;
-  is_favorite: boolean;
-  source_platform: string | null;
-  year_released: number | null;
-  visibility: string;
-  notes?: string | null;
-  created_at: string;
-  updated_at: string;
-}
+// The API contract (snake_case), so the card can't drift from what GET /api/media sends.
+export type MediaItem = ApiMediaItem;
 
 const TYPE_ICONS: Record<string, string> = {
   book: '\u{1F4D6}', tv_show: '\u{1F4FA}', movie: '\u{1F3AC}',
@@ -86,7 +62,7 @@ export default function MediaCard({ item, onClick, onEdit, onDelete }: MediaCard
               <p className="text-xs text-gray-500 truncate mt-0.5">{item.creator}</p>
             )}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-xs text-gray-400 capitalize">{item.media_type.replace('_', ' ')}</span>
+              <span className="text-xs text-gray-400 capitalize">{mediaTypeLabel(item.media_type)}</span>
               {item.rating != null && (
                 <span className="flex items-center gap-0.5 text-xs text-amber-600">
                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" />

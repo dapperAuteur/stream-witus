@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { toApiMediaNote } from "@/lib/media-api";
 
 type Params = { params: Promise<{ id: string; noteId: string }> };
 
@@ -29,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const note = await sdb.updateNote(id, noteId, updates);
   if (!note) return notFound();
-  return NextResponse.json({ note });
+  return NextResponse.json({ note: toApiMediaNote(note) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
