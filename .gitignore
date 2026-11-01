@@ -14,5 +14,8 @@ next-env.d.ts
 PROMPT.md
 
 
-/docs/
+# docs/ holds local working notes, except the shared-format roadmap that witus.online's
+# /admin/roadmap reads from main. Ignore the contents (not the folder) so it can be re-included.
+/docs/*
+!/docs/roadmap.md
 /content/
