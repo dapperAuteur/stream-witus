@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, unauthorized } from "@/lib/api";
+import { toApiNamedCount } from "@/lib/media-api";
 
 export async function GET() {
   const sdb = await getScopedDb();
   if (!sdb) return unauthorized();
   const platforms = await sdb.listPlatforms();
-  return NextResponse.json(platforms);
+  return NextResponse.json(platforms.map(toApiNamedCount));
 }
 
 export async function POST(request: NextRequest) {
@@ -15,5 +16,5 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   if (!body?.name?.trim()) return badRequest("name is required");
   const platform = await sdb.upsertPlatform(body.name.trim());
-  return NextResponse.json(platform, { status: 201 });
+  return NextResponse.json(toApiNamedCount(platform), { status: 201 });
 }

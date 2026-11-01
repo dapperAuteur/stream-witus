@@ -10,47 +10,11 @@ import { offlineFetch } from '@/lib/offline/offline-fetch';
 import AudioRecorder from '@/components/ui/AudioRecorder';
 import MediaRelationships from '@/components/media/MediaRelationships';
 import MediaForm from '@/components/media/MediaForm';
+import { type ApiMediaItem, type ApiMediaNote, mediaTypeLabel } from '@/lib/media-api';
 
-interface MediaItem {
-  id: string;
-  title: string;
-  creator: string | null;
-  media_type: string;
-  status: string;
-  rating: number | null;
-  start_date: string | null;
-  end_date: string | null;
-  genre: string[];
-  tags: string[];
-  cover_image_url: string | null;
-  external_url: string | null;
-  current_progress: string | null;
-  total_length: string | null;
-  season_number: number | null;
-  episode_number: number | null;
-  total_seasons: number | null;
-  total_episodes: number | null;
-  visibility: string;
-  year_released: number | null;
-  source_platform: string | null;
-  notes: string | null;
-  is_favorite: boolean;
-  created_at: string;
-  updated_at: string;
-}
+type MediaItem = ApiMediaItem;
 
-interface MediaNote {
-  id: string;
-  title: string | null;
-  content: string;
-  content_format: string;
-  note_type: string;
-  is_public: boolean;
-  created_at: string;
-  updated_at: string;
-  audio_url?: string | null;
-  audio_public_id?: string | null;
-}
+type MediaNote = ApiMediaNote;
 
 const TYPE_ICONS: Record<string, string> = {
   book: '\u{1F4D6}', tv_show: '\u{1F4FA}', movie: '\u{1F3AC}',
@@ -228,7 +192,7 @@ export default function MediaDetailPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.className}`}>{badge.label}</span>
-              <span className="text-xs text-gray-400 capitalize">{item.media_type.replace('_', ' ')}</span>
+              <span className="text-xs text-gray-400 capitalize">{mediaTypeLabel(item.media_type)}</span>
               {item.is_favorite && <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{item.title}</h1>
@@ -291,17 +255,17 @@ export default function MediaDetailPage() {
           </div>
         )}
 
-        {item.genre.length > 0 && (
+        {(item.genre ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {item.genre.map((g) => (
+            {(item.genre ?? []).map((g) => (
               <span key={g} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{g}</span>
             ))}
           </div>
         )}
 
-        {item.tags.length > 0 && (
+        {(item.tags ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {item.tags.map((t) => (
+            {(item.tags ?? []).map((t) => (
               <span key={t} className="text-xs bg-fuchsia-50 text-fuchsia-600 px-2 py-0.5 rounded-full">{t}</span>
             ))}
           </div>

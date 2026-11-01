@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, unauthorized } from "@/lib/api";
+import { toApiEpisode } from "@/lib/media-api";
 
 export async function GET() {
   const sdb = await getScopedDb();
   if (!sdb) return unauthorized();
   const episodes = await sdb.listEpisodes();
-  return NextResponse.json({ episodes });
+  return NextResponse.json({ episodes: episodes.map(toApiEpisode) });
 }
 
 export async function POST(request: NextRequest) {
@@ -28,5 +29,5 @@ export async function POST(request: NextRequest) {
     status: body.status ?? "draft",
     visibility: body.visibility ?? "private",
   });
-  return NextResponse.json({ episode }, { status: 201 });
+  return NextResponse.json({ episode: toApiEpisode(episode) }, { status: 201 });
 }

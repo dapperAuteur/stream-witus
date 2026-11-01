@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { toApiEpisodeLink } from "@/lib/media-api";
 
 // Link / unlink tracked media to an "All The Spoilers" episode. `[id]` is the
 // episode id. Both the episode and the media item must be owned by the caller
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     sortOrder: body.sort_order ?? 0,
   });
   if (!link) return notFound();
-  return NextResponse.json({ link }, { status: 201 });
+  return NextResponse.json({ link: toApiEpisodeLink(link) }, { status: 201 });
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
@@ -48,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const link = await sdb.updateEpisodeLink(id, body.media_item_id, updates);
   if (!link) return notFound();
-  return NextResponse.json({ link });
+  return NextResponse.json({ link: toApiEpisodeLink(link) });
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {

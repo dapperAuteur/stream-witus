@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { notFound, unauthorized } from "@/lib/api";
+import { toApiMediaNote } from "@/lib/media-api";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -9,7 +10,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (!sdb) return unauthorized();
   const { id } = await params;
   const notes = await sdb.listNotes(id);
-  return NextResponse.json({ notes });
+  return NextResponse.json({ notes: notes.map(toApiMediaNote) });
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
@@ -30,5 +31,5 @@ export async function POST(request: NextRequest, { params }: Params) {
   });
   // null → the parent media item isn't owned by this user (or doesn't exist).
   if (!note) return notFound();
-  return NextResponse.json({ note }, { status: 201 });
+  return NextResponse.json({ note: toApiMediaNote(note) }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getScopedDb } from "@/db/scoped";
 import { badRequest, notFound, unauthorized } from "@/lib/api";
+import { toApiMediaCategory } from "@/lib/media-api";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -18,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const category = await sdb.updateCategory(id, updates);
   if (!category) return notFound();
-  return NextResponse.json({ category });
+  return NextResponse.json({ category: toApiMediaCategory(category) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
