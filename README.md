@@ -49,6 +49,15 @@ Open Library. `@/*` → `src/*`.
   so an unreachable IdP still leaves you signed out here; other WitUS apps stay signed in until you
   sign out of them (the help text next to it says so). "Continue as" and the "everywhere" control
   are dark unless `WITUS_OIDC_CLIENT_ID` is set; plain Sign out always shows. Design + reasoning: `src/lib/silent-sso.ts` and `src/lib/sign-out.ts`; pinned in `tests/silent-sso.test.ts` and `tests/sign-out.test.ts`.
+- **Site shell** — `src/components/site-header.tsx` and `site-footer.tsx` are mounted once in the
+  root layout, so every page, the 404 and the error boundary included, has them. Signed out, the
+  header shows a link named exactly **Sign in**; signed in, an **Account** menu holds Sign out and
+  Sign out of WitUS everywhere. Below 768px the nav folds into a **Menu** button. A skip link leads
+  to the content. The footer is the ecosystem recipe (Rise Wellness, sibling apps, legal links).
+  Errors: `app/not-found.tsx` and `app/error.tsx` render inside the shell, `global-error.tsx`
+  carries its own home and Sign in links, a signed-out `/dashboard/...` visit goes to
+  `/signin?next=<path>` and returns there after sign-in (`src/proxy.ts`, `src/lib/return-to.ts`),
+  and admin pages show a "You don't have access" notice to accounts without the role.
 - **Uptime probe** at `GET /api/health` (see below): the one route that proves the database is
   reachable, so a green uptime check means something.
 - **Isolation gate** — `tests/isolation/` proves no cross-owner leak. `no-unscoped-reads.test.ts`
@@ -77,7 +86,9 @@ accepted.
 | `pnpm build` | Production build (`--webpack`) |
 | `pnpm typecheck` | `next typegen && tsc --noEmit` |
 | `pnpm lint` | ESLint |
-| `pnpm test` | Vitest (isolation suite, the error-report scrubber, CSV import parser + duplicate rule) |
+| `pnpm test` | Vitest (isolation suite, the error-report scrubber, CSV import parser + duplicate rule, site nav + sign-in return path) |
+| `pnpm test:e2e` | Playwright site-shell tests at 1100px and 320px; starts `pnpm dev` (no secrets needed) or reuses one on :3050 |
+| `pnpm test:smoke` | Only the `@smoke` tests; set `PLAYWRIGHT_BASE_URL` to run them against a deploy |
 | `pnpm db:generate` | Generate a Drizzle migration from the schema |
 | `pnpm db:migrate` | Apply migrations to Neon (reads `.env.local`) |
 | `pnpm seed` | Seed dev data |
@@ -92,7 +103,7 @@ every WitUS app. After sign-in you land on `/dashboard/media`: add/edit/list/det
 (`/dashboard/media/settings`), plan podcast episodes and link discussed titles
 (`/dashboard/media/podcasts`), **Find** a title via Open Library / TMDB to auto-fill details,
 import from a URL, **import a CSV**, and export CSV. Every `/dashboard` route is owner-gated
-(redirects to `/signin`).
+(redirects to `/signin?next=<the page>`, and signing in brings you back to it).
 
 ### Moving your media list from CentenarianOS (CSV import)
 

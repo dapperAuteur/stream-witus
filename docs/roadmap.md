@@ -3,7 +3,7 @@ app: stream-witus
 name: Stream.WitUS
 stage: beta
 url: https://stream.witus.online
-updated: 2026-10-31
+updated: 2026-11-06
 ---
 
 ## Live now
@@ -19,6 +19,7 @@ updated: 2026-10-31
 - Invite-only sign-up with a waitlist; admin dashboard with roles, members, moderation, feature flags, audit log, outbox and inbox panels
 - Sign in with WitUS, "Continue as" on the sign-in page, and the choice to sign out of Stream only or of WitUS everywhere
 - `/api/health` endpoint that checks the database
+- Site header and footer on every page (exact "Sign in" link, Account menu, mobile menu, skip link); 404, error and 403 pages keep them; signing in returns you to the page you asked for
 
 ## In progress
 - Receiving CentenarianOS media lists: hand check of a production export and import (witus task 146)
