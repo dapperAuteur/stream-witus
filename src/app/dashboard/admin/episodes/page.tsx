@@ -1,13 +1,13 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import EpisodesAdmin from "@/components/admin/EpisodesAdmin";
 import ShowsPanel from "@/components/admin/ShowsPanel";
 import { canModerate, requireAdmin } from "@/lib/session";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEpisodesPage() {
-  if (!(await requireAdmin(canModerate))) notFound();
+  if (!(await requireAdmin(canModerate))) return <AccessDenied what="podcast episode admin" />;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

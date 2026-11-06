@@ -1,4 +1,5 @@
 import { hasWitusSso, witusSilentSsoEndpoint } from '@/lib/env';
+import { RETURN_PARAM, safeReturnPath } from '@/lib/return-to';
 import { SignInForm } from './SignInForm';
 
 // Server component: reads the server-only `hasWitusSso` flag so the "Sign in with
@@ -9,16 +10,29 @@ import { SignInForm } from './SignInForm';
 // check. It is resolved HERE, on the server, and is null unless this app is a
 // configured OIDC client — the client component never reads the raw env, and with
 // SSO off the browser is never even handed the URL.
-export default function SignInPage() {
+//
+// `?next=` is where a signed-out visit to a protected page was headed (see src/lib/return-to.ts).
+// Only a same-origin path survives `safeReturnPath`; anything else falls back to the media list.
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const returnTo = safeReturnPath((await searchParams)[RETURN_PARAM]);
+
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
+    <main className="flex min-h-[70vh] items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold">Stream.WitUS</h1>
           <p className="text-sm text-neutral-400">Sign in with a magic link.</p>
         </div>
 
-        <SignInForm witusSsoEnabled={hasWitusSso} witusSilentCheckUrl={witusSilentSsoEndpoint} />
+        <SignInForm
+          witusSsoEnabled={hasWitusSso}
+          witusSilentCheckUrl={witusSilentSsoEndpoint}
+          returnTo={returnTo}
+        />
       </div>
     </main>
   );

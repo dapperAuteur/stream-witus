@@ -121,9 +121,6 @@ export default async function PublicEpisodePage({ params }: Params) {
         </section>
       )}
 
-      <footer className="mt-12 border-t border-neutral-800 pt-6 text-xs text-neutral-500">
-        Tracked on <Link href="/" className="text-fuchsia-400 hover:underline">Stream.WitUS</Link>
-      </footer>
     </main>
   );
 }

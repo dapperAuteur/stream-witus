@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { PostHogProvider } from "@/lib/analytics/posthog-provider";
+import { witusEndSessionEndpoint } from "@/lib/env";
+import { getShellSession } from "@/lib/shell-session";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,13 +13,34 @@ export const metadata: Metadata = {
     "A personal-first cross-media tracker and companion for the All The Spoilers podcast — books, movies, TV — plus the ReadWitUS book club.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Never throws (falls back to signed out), so the shell renders even when auth or the DB is down.
+  const shell = await getShellSession();
+
   return (
     <html lang="en">
-      <body>
-        {children}
+      <body className="flex min-h-dvh flex-col">
+        <a
+          href="#main-content"
+          className="sr-only rounded-md bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          Skip to content
+        </a>
+        {/* The shell is here, in the root layout, so the 404 and the error boundary keep it too
+            (witus docs/shared-ui-ux-dx.md, "Error pages keep the app shell"). */}
+        <SiteHeader
+          signedIn={shell.signedIn}
+          email={shell.email}
+          isAdmin={shell.isAdmin}
+          endSessionUrl={shell.signedIn ? witusEndSessionEndpoint : null}
+        />
+        {/* Pages render their own <main>; this wrapper is the skip link's target. */}
+        <div id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
+          {children}
+        </div>
+        <SiteFooter signedIn={shell.signedIn} />
         {/* Product analytics. Read the key HERE, in the Server Component, and pass it
             down — the client component must not touch process.env. `?? null` is what
             puts the provider in its supported keyless state (renders, captures

@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ROADMAP_MD } from "@/lib/roadmap";
 import { canView, requireAdmin } from "@/lib/session";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
 // Admin-only in-app roadmap (plans/future/01). Renders the committed snapshot.
 export default async function AdminRoadmapPage() {
-  if (!(await requireAdmin(canView))) notFound();
+  if (!(await requireAdmin(canView))) return <AccessDenied what="the roadmap" />;
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       <Link href="/dashboard/admin" className="text-sm text-gray-500 hover:text-gray-900">← Admin</Link>

@@ -32,7 +32,7 @@ export default function SignOutButton() {
           await signOutHere({ signOut: () => signOut(), goLocal: (path) => router.push(path) });
         })
       }
-      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition disabled:opacity-50"
+      className="flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 text-sm font-medium text-neutral-200 transition hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400 disabled:opacity-50"
     >
       <LogOut className="w-4 h-4" aria-hidden="true" /> {pending ? SIGN_OUT_PENDING_LABEL : SIGN_OUT_LABEL}
     </button>
@@ -45,7 +45,7 @@ export default function SignOutButton() {
  * until you sign out of them; the help text says so.
  *
  * `endSessionUrl` is resolved on the SERVER (`witusEndSessionEndpoint` in src/lib/env.ts, which
- * already carries the required `client_id`) and passed in by the dashboard layout. It is null when
+ * already carries the required `client_id`) and passed in by the root layout's site header. It is null when
  * WITUS_OIDC_CLIENT_ID is unset, and then nothing renders.
  */
 export function SignOutEverywhereButton({ endSessionUrl }: { endSessionUrl: string | null }) {
@@ -54,7 +54,7 @@ export function SignOutEverywhereButton({ endSessionUrl }: { endSessionUrl: stri
   if (!endSessionUrl) return null;
 
   return (
-    <div className="flex max-w-xs flex-col items-end gap-0.5">
+    <div className="flex flex-col items-start gap-0.5 border-t border-neutral-800 pt-2">
       <button
         type="button"
         disabled={pending}
@@ -69,11 +69,11 @@ export function SignOutEverywhereButton({ endSessionUrl }: { endSessionUrl: stri
             });
           })
         }
-        className="text-xs text-gray-500 underline underline-offset-4 hover:text-gray-800 transition disabled:opacity-50"
+        className="min-h-11 rounded-md px-2 text-left text-sm text-neutral-200 underline underline-offset-4 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-400 disabled:opacity-50"
       >
         {pending ? SIGN_OUT_PENDING_LABEL : SIGN_OUT_EVERYWHERE_LABEL}
       </button>
-      <p id={helpId} className="text-right text-xs text-gray-500">
+      <p id={helpId} className="px-2 text-xs text-neutral-400">
         {SIGN_OUT_EVERYWHERE_HELP}
       </p>
     </div>

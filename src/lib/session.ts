@@ -1,20 +1,27 @@
 import "server-only";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { getUserFlags, isOwnerEmail } from "./access";
 import { auth } from "./auth";
+
+/**
+ * One session lookup per request. The root layout's header, the dashboard layout's gate and the
+ * page itself all ask; React's `cache` makes those one call instead of three.
+ */
+const currentSession = cache(async () => auth.api.getSession({ headers: await headers() }));
 
 /**
  * The current request's user id, or null if unauthenticated.
  * Route handlers use this to gate access (401) before building a ScopedDb.
  */
 export async function getSessionUserId(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await currentSession();
   return session?.user?.id ?? null;
 }
 
 /** The current user's id + email, or null. */
 export async function getSessionUser(): Promise<{ id: string; email: string } | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await currentSession();
   if (!session?.user?.id) return null;
   return { id: session.user.id, email: session.user.email };
 }

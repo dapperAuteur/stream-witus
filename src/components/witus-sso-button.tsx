@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { DEFAULT_RETURN_PATH, signInHref } from '@/lib/return-to';
 import {
   SILENT_SSO_TIMEOUT_MS,
   SSO_ATTEMPT_STORAGE_KEY,
@@ -11,8 +12,6 @@ import {
   withAttemptMarker,
   type SsoIdentity,
 } from '@/lib/silent-sso';
-
-const CALLBACK_PATH = '/dashboard/media';
 
 /**
  * "Sign in with WitUS" — starts the ecosystem OIDC flow against accounts.witus.online — plus the
@@ -34,11 +33,14 @@ const CALLBACK_PATH = '/dashboard/media';
 export function WitusSsoButton({
   enabled,
   silentCheckUrl,
+  callbackPath = DEFAULT_RETURN_PATH,
 }: {
   /** Server-resolved gate (`hasWitusSso`). False means this component does nothing at all. */
   enabled: boolean;
   /** IdP session endpoint, or null when ecosystem SSO is not configured. */
   silentCheckUrl: string | null;
+  /** Same-origin path to land on after sign-in (already checked by `safeReturnPath`). */
+  callbackPath?: string;
 }) {
   const [pending, setPending] = useState(false);
   const [identity, setIdentity] = useState<SsoIdentity | null>(null);
@@ -102,15 +104,16 @@ export function WitusSsoButton({
     void authClient.signIn
       .social({
         provider: 'witus',
-        callbackURL: CALLBACK_PATH,
+        callbackURL: callbackPath,
         // Belt and braces with the callback interception in src/app/api/auth/[...all]/route.ts.
         // Better Auth only reads errorCallbackURL for failures AFTER it parses the OAuth state, so
         // an error the IdP itself returns is handled there; this covers the rest (token exchange,
         // issuer mismatch) and carries the same one-shot marker.
-        errorCallbackURL: withAttemptMarker('/signin'),
+        // Keeps `?next=` so a retry after a failed WitUS sign-in still returns to the same page.
+        errorCallbackURL: withAttemptMarker(signInHref(callbackPath)),
       })
       .finally(() => setPending(false));
-  }, []);
+  }, [callbackPath]);
 
   if (!enabled) return null;
 

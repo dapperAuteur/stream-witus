@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import AdminPanel from "@/components/admin/AdminPanel";
 import AuditPanel from "@/components/admin/AuditPanel";
 import FlagsPanel from "@/components/admin/FlagsPanel";
@@ -9,12 +8,14 @@ import MembersPanel from "@/components/admin/MembersPanel";
 import OutboxPanel from "@/components/admin/OutboxPanel";
 import StatsPanel from "@/components/admin/StatsPanel";
 import { canManageSettings, canManageUsers, canModerate, getAdminUser } from "@/lib/session";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const admin = await getAdminUser();
-  if (!admin) notFound();
+  // Signed in (the dashboard layout guarantees it) but not an admin: a 403 in the shell.
+  if (!admin) return <AccessDenied what="the admin dashboard" />;
   const { role } = admin;
 
   return (

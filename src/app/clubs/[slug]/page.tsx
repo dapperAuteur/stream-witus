@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicClub, listPublicClubReads } from "@/db/public";
 
@@ -66,9 +65,6 @@ export default async function PublicClubPage({ params }: Params) {
         )}
       </section>
 
-      <footer className="mt-12 border-t border-neutral-800 pt-6 text-xs text-neutral-500">
-        A book club on <Link href="/" className="text-fuchsia-400 hover:underline">Stream.WitUS</Link>
-      </footer>
     </main>
   );
 }
