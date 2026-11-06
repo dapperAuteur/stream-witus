@@ -80,15 +80,15 @@ describe("the gate: neither feature does anything without a configured OIDC clie
   it("is enforced by the server page, which resolves the endpoint and the flag", () => {
     const page = read("src/app/signin/page.tsx");
     expect(page).toContain("import { hasWitusSso, witusSilentSsoEndpoint } from '@/lib/env';");
-    expect(page).toContain(
-      "<SignInForm witusSsoEnabled={hasWitusSso} witusSilentCheckUrl={witusSilentSsoEndpoint} />",
-    );
+    const formProps = page.slice(page.indexOf("<SignInForm"), page.indexOf("/>", page.indexOf("<SignInForm")));
+    expect(formProps).toContain("witusSsoEnabled={hasWitusSso}");
+    expect(formProps).toContain("witusSilentCheckUrl={witusSilentSsoEndpoint}");
     // The form only mounts the button behind the same flag, so a dark app never ships the URL.
     const form = read("src/app/signin/SignInForm.tsx");
     const gated = form.slice(form.indexOf("{witusSsoEnabled ?"));
-    expect(gated).toContain(
-      "<WitusSsoButton enabled={witusSsoEnabled} silentCheckUrl={witusSilentCheckUrl} />",
-    );
+    const button = gated.slice(gated.indexOf("<WitusSsoButton"), gated.indexOf("/>", gated.indexOf("<WitusSsoButton")));
+    expect(button).toContain("enabled={witusSsoEnabled}");
+    expect(button).toContain("silentCheckUrl={witusSilentCheckUrl}");
     expect(form.split("<WitusSsoButton").length - 1).toBe(1);
   });
 
@@ -366,12 +366,17 @@ describe("the end-session URL is handed over by the server", () => {
     const code = stripComments(read("src/components/SignOutButton.tsx"));
     expect(code).not.toContain("https://");
     expect(code).not.toContain("witus.online");
-    expect(read("src/app/dashboard/layout.tsx")).toContain(
-      "<SignOutEverywhereButton endSessionUrl={witusEndSessionEndpoint} />",
+    // Resolved on the server in the root layout and passed through the site header's props.
+    expect(read("src/app/layout.tsx")).toContain(
+      "endSessionUrl={shell.signedIn ? witusEndSessionEndpoint : null}",
     );
+    const header = stripComments(read("src/components/site-header.tsx"));
+    expect(header).toContain("<SignOutEverywhereButton endSessionUrl={endSessionUrl} />");
+    expect(header).not.toContain("https://");
+    expect(header).not.toContain("witus.online");
   });
 
   it("gives plain Sign out no IdP URL at all", () => {
-    expect(read("src/app/dashboard/layout.tsx")).toContain("<SignOutButton />");
+    expect(read("src/components/site-header.tsx")).toContain("<SignOutButton />");
   });
 });
