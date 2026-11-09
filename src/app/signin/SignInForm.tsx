@@ -3,16 +3,20 @@
 import { useState } from 'react';
 import { signIn } from '@/lib/auth-client';
 import { WitusSsoButton } from '@/components/witus-sso-button';
+import { DEFAULT_RETURN_PATH } from '@/lib/return-to';
 
 type Status = 'idle' | 'checking' | 'sent' | 'waitlisted' | 'error';
 
 export function SignInForm({
   witusSsoEnabled,
   witusSilentCheckUrl,
+  returnTo = DEFAULT_RETURN_PATH,
 }: {
   witusSsoEnabled: boolean;
   /** Server-resolved IdP session endpoint for the silent "Continue as <name>" check. */
   witusSilentCheckUrl: string | null;
+  /** Where to land after sign-in. Already passed through `safeReturnPath` on the server. */
+  returnTo?: string;
 }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
@@ -34,7 +38,7 @@ export function SignInForm({
       const { allowed } = await statusRes.json();
 
       if (allowed) {
-        const { error: err } = await signIn.magicLink({ email: addr, callbackURL: '/dashboard/media' });
+        const { error: err } = await signIn.magicLink({ email: addr, callbackURL: returnTo });
         if (err) {
           setStatus('error');
           setError(err.message ?? 'Could not send the magic link. Try again.');
@@ -101,7 +105,11 @@ export function SignInForm({
       {witusSsoEnabled ? (
         <div className="space-y-3">
           <p className="text-center text-xs uppercase tracking-wide text-neutral-500">or</p>
-          <WitusSsoButton enabled={witusSsoEnabled} silentCheckUrl={witusSilentCheckUrl} />
+          <WitusSsoButton
+            enabled={witusSsoEnabled}
+            silentCheckUrl={witusSilentCheckUrl}
+            callbackPath={returnTo}
+          />
         </div>
       ) : null}
     </>

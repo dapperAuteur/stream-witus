@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import ModerationPanel from "@/components/admin/ModerationPanel";
 import { canModerate, requireAdmin } from "@/lib/session";
+import { AccessDenied } from "@/components/access-denied";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModerationPage() {
-  if (!(await requireAdmin(canModerate))) notFound();
+  if (!(await requireAdmin(canModerate))) return <AccessDenied what="moderation" />;
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>

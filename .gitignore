@@ -19,3 +19,7 @@ PROMPT.md
 /docs/*
 !/docs/roadmap.md
 /content/
+
+# Playwright output
+/test-results/
+/playwright-report/
